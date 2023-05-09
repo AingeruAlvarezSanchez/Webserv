@@ -2,7 +2,7 @@
 
 NAME = webserv
 
-CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow=local -g3 -fsanitize=address
+CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow -g3 -fsanitize=address
 
 SRCS = webserv.cpp
 
