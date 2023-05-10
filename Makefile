@@ -3,18 +3,19 @@
 NAME = webserv
 
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow -g3 -fsanitize=address
+INCLUDES = -I./includes/
 
-SRCS = webserv.cpp
+SRCS = $(wildcard ./srcs/*.cpp)
 
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
 %.o:%.cpp
-	$(CXX) $(CXXFLAGS) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
 	$(RM) $(OBJS)
