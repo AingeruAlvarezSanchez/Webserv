@@ -1,6 +1,6 @@
 #ifndef WEBSERV_H
 #define WEBSERV_H
-#include <iostream>
+#include <string>
 
 bool conf_file_parsing(std::string const &fileName);
 
