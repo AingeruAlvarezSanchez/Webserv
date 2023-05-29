@@ -5,20 +5,27 @@ NAME = webserv
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow -g3 -fsanitize=address
 INCLUDES = -I./includes/
 
-SRCS = $(wildcard ./srcs/*.cpp)
-
-OBJS = $(SRCS:.cpp=.o)
+OBJDIR := objs/
+SRCS = $(shell find ./srcs -type f -name *.cpp)
+HEADERS = $(shell find ./srcs -type f -name *.hpp)
+OBJS = $(addprefix $(OBJDIR), $(notdir $(SRCS:.cpp=.o)))
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
-%.o:%.cpp
+$(OBJDIR)%.o:srcs/*/%.cpp $(HEADERS) | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+$(OBJDIR)%.o:srcs/%.cpp $(HEADERS) | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
 clean:
-	$(RM) $(OBJS)
+	$(RM) -r $(OBJDIR)
 
 fclean: clean
 	$(RM) $(NAME)
