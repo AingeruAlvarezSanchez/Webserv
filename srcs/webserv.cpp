@@ -6,11 +6,11 @@
 int main(int argc, char **argv) {
     if (argc < 2) {
         errno = EINVAL;
-        std::cout << "Webserv: could not execute: " << strerror(errno) << "\n";
+        std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
         return 1;
     } else if (argc > 2) {
         errno = E2BIG;
-        std::cout << "Webserv: could not execute: " << strerror(errno) << "\n";
+        std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
         return 1;
     }
 
@@ -19,9 +19,9 @@ int main(int argc, char **argv) {
     }
     catch (std::exception const& e) {
         if (static_cast<std::string>(strerror(errno)).find("Unknown error") != std::string::npos) {
-            std::cout << e.what() << "\n";
+            std::cerr << e.what() << "\n";
         } else {
-            std::cout << e.what() << strerror(errno) << "\n";
+            std::cerr << e.what() << strerror(errno) << "\n";
         }
         return 1;
     }
