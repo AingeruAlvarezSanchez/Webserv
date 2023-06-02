@@ -7,7 +7,7 @@ INCLUDES = -I./includes/
 
 OBJDIR := objs/
 SRCS = $(shell find ./srcs -type f -name *.cpp)
-HEADERS = $(shell find ./srcs -type f -name *.hpp)
+INCLUDE = ./includes/webserv.h
 OBJS = $(addprefix $(OBJDIR), $(notdir $(SRCS:.cpp=.o)))
 
 all: $(NAME)
@@ -15,10 +15,10 @@ all: $(NAME)
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
-$(OBJDIR)%.o:srcs/*/%.cpp $(HEADERS) | $(OBJDIR)
+$(OBJDIR)%.o:srcs/*/%.cpp $(INCLUDE) | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-$(OBJDIR)%.o:srcs/%.cpp $(HEADERS) | $(OBJDIR)
+$(OBJDIR)%.o:srcs/%.cpp $(INCLUDE) | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJDIR):
