@@ -12,7 +12,7 @@ OBJS = $(addprefix $(OBJDIR), $(notdir $(SRCS:.cpp=.o)))
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
+$(NAME): $(OBJS) $(OBJDIR)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
 $(OBJDIR)%.o:srcs/*/%.cpp $(INCLUDE) | $(OBJDIR)
@@ -30,6 +30,7 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
-re: fclean all
+re: fclean
+	$(MAKE) all -C ./
 
 .PHONY: all clean fclean re

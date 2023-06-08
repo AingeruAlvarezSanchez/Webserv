@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include "webserv.h"
+#include "classes/server_conf.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -15,7 +16,11 @@ int main(int argc, char **argv) {
     }
 
     try {
-        conf_file_parsing(argv[1]);
+        const ServerConf  serverConf = conf_file_parsing(argv[1]);
+        if (serverConf.getSocketConfData(3) != ServerConf::invalidSocket) {
+        }
+        std::cout << serverConf.getSocketConfData(3)->socketFd << std::endl;
+        std::cout << serverConf.getSocketConfData(9000)->socketFd << std::endl;
     }
     catch (std::exception const& e) {
         if (static_cast<std::string>(strerror(errno)).find("Unknown error") != std::string::npos) {
