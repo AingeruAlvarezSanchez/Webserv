@@ -5,6 +5,6 @@
 
 #define ESYNTAX 134 //Syntax error on configuration file.
 
-ServerConf const& conf_file_parsing(std::string const &fileName);
+ServerConf conf_file_parsing(std::string const &fileName);
 
 #endif //WEBSERV_H

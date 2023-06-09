@@ -17,10 +17,12 @@ int main(int argc, char **argv) {
 
     try {
         const ServerConf  serverConf = conf_file_parsing(argv[1]);
-        if (serverConf.getSocketConfData(3) != ServerConf::invalidSocket) {
+        if (!serverConf.invalidSocket(serverConf.getSocketConfData(3))) {
+            std::cout << serverConf.getSocketConfData(3)->socketFd << std::endl;
         }
-        std::cout << serverConf.getSocketConfData(3)->socketFd << std::endl;
-        std::cout << serverConf.getSocketConfData(9000)->socketFd << std::endl;
+        if (!serverConf.invalidSocket(serverConf.getSocketConfData(9000))) {
+            std::cout << serverConf.getSocketConfData(9000)->socketFd << std::endl;
+        }
     }
     catch (std::exception const& e) {
         if (static_cast<std::string>(strerror(errno)).find("Unknown error") != std::string::npos) {

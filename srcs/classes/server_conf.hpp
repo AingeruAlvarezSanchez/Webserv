@@ -8,17 +8,17 @@
 class ServerConf {
 public:
     typedef struct {
-        int                         socketFd;
+        int socketFd; // TODO array of INTS / To calculate size of an int * => sizeof(socketFds) / sizeof(socketFds)[0]
         //getsockname()
         //TODO location
-    }   confValuesData;
-
+    }   socketParams;
+    typedef std::vector< socketParams >::const_iterator   SocketParamsIterator;
 private:
-    std::vector< confValuesData >   _socketsConfData;
+    std::vector< socketParams >   _socketsConfData;
 public:
     //Constructors
     ServerConf();
-    ServerConf(std::vector< confValuesData > const& socketsConfigs);
+    explicit ServerConf(std::vector< socketParams > const& socketsConfigs);
     ServerConf(ServerConf const& cpy);
 
     //Destructor
@@ -31,19 +31,19 @@ public:
     int createSocketConf(std::ifstream const& file); //TODO
 
     //JSON Configuration
-    bool    serverJSONCreation(); //TODO
+    bool    serverJSONCreation() const; //TODO
 
     //Getters
-    std::vector< ServerConf::confValuesData >::const_iterator  getSocketConfData(int socketFd) const;
+    SocketParamsIterator  getSocketConfData(int socketFd) const;
 
-    //TODO create .last function
+    bool  invalidSocket(SocketParamsIterator const& it) const;
 
     //Configuration files error handling
     class BadSyntax : public std::exception {
     private:
         char const* _error;
     public:
-        BadSyntax(char const *msg) : _error(msg) {}
+        explicit BadSyntax(char const *msg) : _error(msg) {}
 
         char const* what() const throw() {
             return _error;

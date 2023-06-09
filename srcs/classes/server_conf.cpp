@@ -2,7 +2,7 @@
 
 ServerConf::ServerConf() {}
 
-ServerConf::ServerConf(std::vector< confValuesData > const& socketsConfigs)
+ServerConf::ServerConf(std::vector< socketParams > const& socketsConfigs)
     : _socketsConfData(socketsConfigs) {}
 
 ServerConf::ServerConf(ServerConf const& cpy)
@@ -17,20 +17,16 @@ ServerConf& ServerConf::operator=(ServerConf const& cpy) {
     return *this;
 }
 
-int ServerConf::createSocketConf(__unused const std::ifstream &file) {
-    return 0;
-}
-
-bool ServerConf::serverJSONCreation() {
-    return 0;
-}
-
-std::vector< ServerConf::confValuesData >::const_iterator ServerConf::getSocketConfData(int socketFd) const {
-    for (std::vector< confValuesData >::const_iterator it = this->_socketsConfData.begin(); it != this->_socketsConfData.end(); it++) {
+ServerConf::SocketParamsIterator ServerConf::getSocketConfData(int socketFd) const {
+    for (SocketParamsIterator it = this->_socketsConfData.begin(); it != this->_socketsConfData.end(); it++) {
         if (it->socketFd == socketFd) {
             return it;
         }
     }
     return this->_socketsConfData.end();
+}
+
+bool ServerConf::invalidSocket(ServerConf::SocketParamsIterator const& it) const {
+    return it == this->_socketsConfData.end();
 }
 
