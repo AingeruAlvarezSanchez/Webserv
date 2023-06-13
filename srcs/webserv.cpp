@@ -1,5 +1,5 @@
 #include <cstring>
-#include <fstream>
+#include <cerrno>
 #include <iostream>
 #include "webserv.h"
 
@@ -15,6 +15,9 @@ int main(int argc, char **argv) {
     }
 
     try {
+        std::cout << "Before parsing:\nFile -> " << argv[1] << "\n";
+        config_file_parsing(argv[1]);
+        std::cout << "Parsing done.\n";
     }
     catch (std::exception const& e) {
         if (static_cast<std::string>(strerror(errno)).find("Unknown error") != std::string::npos) {
