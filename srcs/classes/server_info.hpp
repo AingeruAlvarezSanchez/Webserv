@@ -6,7 +6,9 @@
 class ServerInfo {
 public:
     typedef struct {
-        bool                        requestPermissions[3];  //TODO care, deep copy
+        bool                        getRequestPermission;
+        bool                        postRequestPermission;
+        bool                        deleteRequestPermission;
         std::vector< std::string >  pageFileNames;          //TODO check later
         std::string                 root;
         bool                        autoIndex;
@@ -19,6 +21,8 @@ public:
     typedef std::vector< std::pair< std::string, _location > >::const_iterator  configuredLocationsIterator;
 
     typedef struct {
+        unsigned short              serverPort;
+        std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
         std::string                 errorPageRoute;
         unsigned int                maxBodySize;        //TODO conversions
@@ -37,6 +41,17 @@ public:
 
     //Operator overloads
     ServerInfo& operator=(ServerInfo const& cpy);
+
+    //Custom error classes
+    class BadSyntax : public std::exception {
+    private:
+        char const* _error;
+    public:
+        explicit BadSyntax(char const* msg) : _error(msg) {}
+        char const* what() const throw() {
+            return this->_error;
+        }
+    };
 
     //Destructor
     ~ServerInfo();
