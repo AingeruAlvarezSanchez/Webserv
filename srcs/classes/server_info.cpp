@@ -4,11 +4,12 @@
 
 #include "server_info.hpp"
 
-ServerInfo::ServerInfo() {}
+ServerInfo::ServerInfo() {} //TODO
 
-ServerInfo::ServerInfo(__attribute__((unused)) const ServerInfo &cpy) {}
+#include <iostream>
+ServerInfo::ServerInfo(__attribute__((unused)) const ServerInfo &original) {} //TODO
 
-ServerInfo &ServerInfo::operator=(__attribute__((unused)) const ServerInfo &cpy) {
+ServerInfo &ServerInfo::operator=(__attribute__((unused)) const ServerInfo &cpy) { //TODO
     return *this;
 }
 
