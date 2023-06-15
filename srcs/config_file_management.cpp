@@ -35,10 +35,31 @@ static std::string get_server_directive(std::string configContent) {
 #include <iostream> //TODO
 static ServerInfo::serverData   get_directive_conf(std::string &serverDirective) {
     ServerInfo::serverData data = {}; //TODO
+    size_t  directiveStart = serverDirective.find_first_of('{');
+    size_t  ruleNewLine = serverDirective.find_first_of('\n');
 
+    std::string line = serverDirective.substr(directiveStart + 1, (ruleNewLine - directiveStart - 1));
+    size_t  lineComment = line.find_first_of('#');
+
+    if (line.find_first_not_of(' ') != std::string::npos && line.find_first_not_of(' ') != lineComment) {
+        errno = 134;
+        throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
+    }
+    serverDirective.erase(0, (ruleNewLine + 1));
+    serverDirective.erase(serverDirective.find_last_of('}'), 1);
+
+    __unused size_t ruleSemicolon;
+    __unused size_t locationDirectiveStart;
     //TODO
     std::cout << "---------------Directive start ----------------\n" << serverDirective << "---------------Directive end ----------------\n";
     //TODO
+    while (!serverDirective.empty()) {
+        line = serverDirective.substr(0, serverDirective.find_first_of('\n') + 1);
+        ruleSemicolon = line.find_first_of(';');
+
+        std::cout << "line: " << line;
+        serverDirective.erase(0, line.length());
+    }
 
     return data;
 }
