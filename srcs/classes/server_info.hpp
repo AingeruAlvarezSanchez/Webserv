@@ -17,7 +17,7 @@ public:
         std::string                 uploadsRoute;
     }   _location;
 
-    typedef std::vector< std::pair< std::string, _location > >                  t_configuredLocations;
+    typedef std::vector< std::pair< std::string, _location > >                  configuredLocations;
     typedef std::vector< std::pair< std::string, _location > >::const_iterator  configuredLocationsIterator;
 
     typedef struct {
@@ -26,18 +26,21 @@ public:
         std::vector< std::string >  serverNames;
         std::string                 errorPageRoute;
         unsigned int                maxBodySize;        //TODO conversions
-        t_configuredLocations       serverLocations;
+        configuredLocations         serverLocations;
     }   serverData;
 
     typedef std::vector< std::pair< std::vector< int >, serverData > >                  serverInfo;
     typedef std::vector< std::pair< std::vector< int >, serverData > >::const_iterator  serverInfoIterator;
+    typedef std::pair< std::vector< int >, serverData >                                 serverInfoPair;
 
-private:
     serverInfo  _serverInfo;
 public:
     //Constructors
     ServerInfo();
     ServerInfo(ServerInfo const& original);
+
+    //Setters
+    void    setServerInfo(serverData const& value);
 
     //Operator overloads
     ServerInfo& operator=(ServerInfo const& cpy);

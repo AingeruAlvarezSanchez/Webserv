@@ -2,6 +2,7 @@
 #include <cerrno>
 #include <iostream>
 #include "webserv.h"
+#include "classes/server_info.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -15,8 +16,7 @@ int main(int argc, char **argv) {
     }
 
     try {
-        std::cout << "Before parsing:\nFile -> " << argv[1] << "\n";
-        config_file_parsing(argv[1]);
+        ServerInfo const serverInfo = config_file_parsing(argv[1]);
         std::cout << "Parsing done.\n";
     }
     catch (std::exception const& e) {
