@@ -6,5 +6,6 @@
 #define ESYNTAX 134 //Syntax error, used for all syntax cases.
 
 ServerInfo  config_file_parsing(char const *fileName);
+ServerInfo::s_serverData  get_directive_conf(std::string & serverDirective);
 
 #endif //WEBSERV_H

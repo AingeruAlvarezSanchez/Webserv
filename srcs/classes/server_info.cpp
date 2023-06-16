@@ -2,7 +2,7 @@
 
 ServerInfo::ServerInfo() {} //TODO
 
-void ServerInfo::setServerInfo(serverData const &data) {
+void ServerInfo::setServerInfo(s_serverData const &data) {
     serverInfoPair serverDataPair = std::make_pair(std::vector< int >(), data);
 
     this->_serverInfo.push_back(serverDataPair);

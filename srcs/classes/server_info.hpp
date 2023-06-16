@@ -15,10 +15,11 @@ public:
         std::vector< std::string >  indexFileNames;
         std::vector< std::string >  cgiLanguages;
         std::string                 uploadsRoute;
-    }   _location;
+    }   s_location;
 
-    typedef std::vector< std::pair< std::string, _location > >                  configuredLocations;
-    typedef std::vector< std::pair< std::string, _location > >::const_iterator  configuredLocationsIterator;
+    typedef std::pair< std::string, s_location >                                 locationDirective;
+    typedef std::vector< std::pair< std::string, s_location > >                  configuredLocations;
+    typedef std::vector< std::pair< std::string, s_location > >::const_iterator  configuredLocationsIterator;
 
     typedef struct {
         unsigned short              serverPort;
@@ -27,11 +28,11 @@ public:
         std::string                 errorPageRoute;
         unsigned int                maxBodySize;        //TODO conversions
         configuredLocations         serverLocations;
-    }   serverData;
+    }   s_serverData;
 
-    typedef std::vector< std::pair< std::vector< int >, serverData > >                  serverInfo;
-    typedef std::vector< std::pair< std::vector< int >, serverData > >::const_iterator  serverInfoIterator;
-    typedef std::pair< std::vector< int >, serverData >                                 serverInfoPair;
+    typedef std::vector< std::pair< std::vector< int >, s_serverData > >                  serverInfo;
+    typedef std::vector< std::pair< std::vector< int >, s_serverData > >::const_iterator  serverInfoIterator;
+    typedef std::pair< std::vector< int >, s_serverData >                                 serverInfoPair;
 
     serverInfo  _serverInfo;
 public:
@@ -40,7 +41,7 @@ public:
     ServerInfo(ServerInfo const& original);
 
     //Setters
-    void    setServerInfo(serverData const& value);
+    void    setServerInfo(s_serverData const& value);
 
     //Operator overloads
     ServerInfo& operator=(ServerInfo const& cpy);
