@@ -1,6 +1,6 @@
 #include <fstream>
 #include <cstring>
-#include "../classes/server_info.hpp"
+#include "../classes/server_info.hpp" //TODO erase the necessity for full route
 
 static std::string get_server_directive(std::string configContent) {
     size_t  firstNonSpace   = configContent.find_first_not_of(' ');
@@ -32,12 +32,12 @@ static std::string get_server_directive(std::string configContent) {
 }
 
 #include <iostream> //TODO
-static bool get_location_conf(std::string const& line) {
+static bool get_location_conf(std::string const& line) { //TODO relocate
     std::cout << "location: " << line;
     return false;
-}
+} //TODO relocate
 
-static bool get_rule_conf(std::string const& line, size_t const& ruleSemicolon) {
+static bool get_rule_conf(std::string const& line, size_t const& ruleSemicolon) { //TODO relocate
     std::string commentLine = line.substr(ruleSemicolon + 1, (line.length() - ruleSemicolon - 2));
 
     if (commentLine.find_first_not_of(' ') != std::string::npos
@@ -47,37 +47,39 @@ static bool get_rule_conf(std::string const& line, size_t const& ruleSemicolon) 
     }
     std::cout << "line: " << line;
     return false;
-}
+} //TODO relocate
 
-bool    rule_content_wrapper(std::string const& line, size_t const& ruleSemicolon) { //TODO put on new directory
+void    rule_content_wrapper(std::string const& line, size_t const& ruleSemicolon) { //TODO relocate
     if (line.find("location:") != std::string::npos) {
         get_location_conf(line);
     } else {
         get_rule_conf(line, ruleSemicolon);
     }
-    return false;
-}
+} //TODO relocate
 
-static ServerInfo::serverData   get_directive_conf(std::string &serverDirective) {
-    ServerInfo::serverData data = {}; //TODO
+static std::string erase_directive_delimiters(std::string const& serverDirective) {
     size_t  directiveStart = serverDirective.find_first_of('{');
     size_t  ruleNewLine = serverDirective.find_first_of('\n');
-    //TODO function
+
     std::string line = serverDirective.substr(directiveStart + 1, (ruleNewLine - directiveStart - 1));
     size_t  lineComment = line.find_first_of('#');
 
-    if (line.find_first_not_of(' ') != std::string::npos && line.find_first_not_of(' ') != lineComment) {
+    if (line.find_first_not_of(' ') != std::string::npos
+        && line.find_first_not_of(' ') != lineComment) {
         errno = 134;
         throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
     }
-    serverDirective.erase(0, (ruleNewLine + 1));
-    serverDirective.erase(serverDirective.find_last_of('}'), 1);
-    //TODO function
+    std::string result = serverDirective.substr((ruleNewLine + 1), (serverDirective.length() - (ruleNewLine + 1) - 1));
+    return result;
+}
 
-    size_t ruleSemicolon;
+static ServerInfo::serverData   get_directive_conf(std::string & serverDirective) {
+    serverDirective = erase_directive_delimiters(serverDirective);
+
+    ServerInfo::serverData data = {}; //TODO
     while (!serverDirective.empty()) {
-        line = serverDirective.substr(0, serverDirective.find_first_of('\n') + 1);
-        ruleSemicolon = line.find_first_of(';');
+        std::string line = serverDirective.substr(0, serverDirective.find_first_of('\n') + 1);
+        size_t ruleSemicolon = line.find_first_of(';');
 
         if (ruleSemicolon == std::string::npos
             && line.find("location:") == std::string::npos) {
@@ -97,7 +99,7 @@ ServerInfo  config_file_parsing(char const *fileName) {
         std::string buffer;
         std::string configContent;
 
-        while (file.good()) { //TODO function
+        while (file.good()) { //TODO function refactorize
             std::getline(file, buffer);
 
             size_t firstNonSpace = buffer.find_first_not_of(' ');
