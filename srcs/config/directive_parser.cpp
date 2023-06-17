@@ -25,7 +25,7 @@ static std::string erase_directive_delimiters(std::string const& directive, unsi
         errno = 134;
         throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
     }
-    std::string result = directive.substr((firstNewLine + 1), (directive.length() - (firstNewLine + 1) - 1));
+    std::string result = directive.substr((firstNewLine + 1), (directive.length() - firstNewLine - 2));
     return result;
 }
 
@@ -41,6 +41,7 @@ static void save_location_conf(ServerInfo::s_location & location, std::string co
     locationRuleMap["index:"] = &set_index_rule;
     locationRuleMap["cgi_pass:"] = &set_cgi_pass_rule;
     locationRuleMap["upload:"] = &set_upload_rule;
+
     for (ruleMapIterator it = locationRuleMap.begin(); it != locationRuleMap.end(); it++) {
         if (line.find(it->first) != std::string::npos
             && line.find(it->first) == line.find_first_not_of(' ')) {
@@ -48,6 +49,7 @@ static void save_location_conf(ServerInfo::s_location & location, std::string co
             return ;
         }
     }
+
     errno = 134;
     throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
 }
@@ -67,6 +69,7 @@ static ServerInfo::locationDirective    get_location_conf(std::string & location
     size_t locationContentStart = locationDirective.find_first_of('[');
     size_t locationPathStart = locationDirective.find_first_not_of("location: ");
     std::string locationPath = locationDirective.substr(locationPathStart, (locationContentStart - locationPathStart));
+
     if (locationPath.empty()) {
         errno = 134;
         throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
@@ -77,12 +80,11 @@ static ServerInfo::locationDirective    get_location_conf(std::string & location
     locationDirective = erase_directive_delimiters(locationDirective, '[');
     ServerInfo::s_location location = {};
     std::cout << "-------------------------------------------\n";
-    while (!locationDirective.empty()) {
+    while (!locationDirective.empty() && locationDirective.find_first_not_of(" \n") != std::string::npos) {
         std::string line = locationDirective.substr(0, locationDirective.find_first_of('\n') + 1);
-        is_valid_comment_line(line, line.find_first_of(';'));
-        if (line.empty()) {
-            break ;
-        }
+        size_t ruleSemicolon = line.find_first_of(';');
+
+        is_valid_comment_line(line, ruleSemicolon);
         save_location_conf(location, line);
 
         locationDirective.erase(0, line.length() + 1);
@@ -111,7 +113,8 @@ ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
 
         if (ruleSemicolon == std::string::npos
             && line.find("location:") == std::string::npos) {
-            std::cout << "Error on line: " << line;
+            errno = 134;
+            throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
         } else {
             if (line.find("location:") != std::string::npos) {
                 size_t locationStart = serverDirective.find("location:");
