@@ -26,7 +26,7 @@ public:
         std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
         std::string                 errorPageRoute;
-        unsigned int                maxBodySize;        //TODO conversions
+        unsigned int                maxBodyBytes;
         configuredLocations         serverLocations;
     }   s_serverData;
 
@@ -41,7 +41,7 @@ public:
     ServerInfo(ServerInfo const& original);
 
     //Setters
-    void    setServerInfo(s_serverData const& value);
+    void    setServerData(s_serverData const& value);
 
     //Operator overloads
     ServerInfo& operator=(ServerInfo const& cpy);
