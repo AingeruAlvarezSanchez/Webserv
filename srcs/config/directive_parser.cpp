@@ -3,11 +3,6 @@
 #include "webserv.h"
 #include "../classes/server_info.hpp"
 
-//TODO maybe change location of typedef
-typedef void(*function)(std::string const&, ServerInfo::s_location &);
-typedef std::map< std::string, function > ruleMap;
-typedef std::map< std::string, function >::iterator ruleMapIterator;
-
 static std::string erase_directive_delimiters(std::string const& directive, unsigned char const& type) {
     size_t  directiveStart;
     if (type == '{') {
@@ -30,26 +25,38 @@ static std::string erase_directive_delimiters(std::string const& directive, unsi
 }
 
 #include <iostream> //TODO
-static void save_location_conf(ServerInfo::s_location & location, std::string const& line) {
-    ruleMap locationRuleMap;
+//TODO maybe change location of typedef
+template <typename T>
+struct ruleAliases {
+    typedef std::map< std::string, void(*)(std::string const&, T &) >   ruleMap;
+    typedef typename std::map< std::string, void(*)(std::string const&, T &) >::iterator ruleMapIterator;
+};
 
-    locationRuleMap["limit_except:"] = &set_limit_except_rule;
-    locationRuleMap["return:"] = &set_return_rule;
-    locationRuleMap["root:"] = &set_root_rule;
-    locationRuleMap["try_files:"] = &set_try_files_rule;
-    locationRuleMap["auto_index:"] = &set_auto_index_rule;
-    locationRuleMap["index:"] = &set_index_rule;
-    locationRuleMap["cgi_pass:"] = &set_cgi_pass_rule;
-    locationRuleMap["upload:"] = &set_upload_rule;
+template <typename T>
+static void save_location_conf(T & directive, std::string const& line) {
+    typename ruleAliases<T>::ruleMap    locationRuleMap;
 
-    for (ruleMapIterator it = locationRuleMap.begin(); it != locationRuleMap.end(); it++) {
+    locationRuleMap["listen:"] = &ServerInfo::set_listen_rule;
+    locationRuleMap["server_name:"] = &ServerInfo::set_server_name_rule;
+    locationRuleMap["error_page:"] = &ServerInfo::set_error_page_rule;
+    locationRuleMap["client_max_body_size:"] = &ServerInfo::set_client_max_body_size_rule;
+
+    locationRuleMap["limit_except:"] = &ServerInfo::set_limit_except_rule;
+    locationRuleMap["return:"] = &ServerInfo::set_return_rule;
+    locationRuleMap["root:"] = &ServerInfo::set_root_rule;
+    locationRuleMap["try_files:"] = &ServerInfo::set_try_files_rule;
+    locationRuleMap["auto_index:"] = &ServerInfo::set_auto_index_rule;
+    locationRuleMap["index:"] = &ServerInfo::set_index_rule;
+    locationRuleMap["cgi_pass:"] = &ServerInfo::set_cgi_pass_rule;
+    locationRuleMap["upload:"] = &ServerInfo::set_upload_rule;
+
+    for (typename ruleAliases<T>::ruleMapIterator it = locationRuleMap.begin(); it != locationRuleMap.end(); it++) {
         if (line.find(it->first) != std::string::npos
             && line.find(it->first) == line.find_first_not_of(' ')) {
-            it->second(line, location);
+            it->second(line, directive);
             return ;
         }
     }
-
     errno = 134;
     throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
 }
@@ -93,8 +100,9 @@ static ServerInfo::locationDirective    get_location_conf(std::string & location
 }
 
 //TODO if something is before the rule name (somelocation:, somelisten:) it must throw an exception, it doesnt atm
-static void get_rule_conf(std::string const& line, size_t const& ruleSemicolon) {
+static void get_rule_conf(ServerInfo::s_serverData &data, std::string const& line, size_t const& ruleSemicolon) {
     is_valid_comment_line(line, ruleSemicolon);
+    save_location_conf(data, line);
 }
 
 ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
@@ -124,7 +132,7 @@ ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
                 serverDirective.erase(locationStart, locationDirective.length() + 1);
                 data.serverLocations.push_back(get_location_conf(locationDirective));
             } else {
-                get_rule_conf(line, ruleSemicolon);
+                get_rule_conf(data, line, ruleSemicolon);
             }
         }
         serverDirective.erase(0, line.length());
