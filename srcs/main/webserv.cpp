@@ -2,7 +2,6 @@
 #include <cerrno>
 #include <iostream>
 #include "webserv.h"
-#include "../classes/server_info.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {

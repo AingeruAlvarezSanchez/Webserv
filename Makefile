@@ -5,7 +5,7 @@ NAME = webserv
 CXX_FLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow
 SANITIZE = -g3 -fsanitize=address
 
-INCLUDES = -I./includes/
+INCLUDES = -I./includes/ -I./srcs/classes/
 
 SRCS_DIR = srcs
 SRCS = $(shell find $(SRCS_DIR) -type f -name "*.cpp")

@@ -47,8 +47,12 @@ std::string fill_directive_content(std::ifstream & file) {
     return directiveContent;
 }
 
-ServerInfo  config_file_parsing(char const *fileName) {
-    std::ifstream   file(fileName);
+ServerInfo  config_file_parsing(std::string const& fileName) {
+    std::ifstream   file(fileName.c_str());
+    if (fileName.rfind(".conf") != fileName.length() - 5) {
+        errno = 134;
+        throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
+    }
 
     if (file.is_open()) {
         std::string directiveContent = fill_directive_content(file);

@@ -1,7 +1,7 @@
 #include <cerrno>
 #include <map>
 #include "webserv.h"
-#include "../classes/server_info.hpp"
+#include "server_info.hpp"
 
 static std::string erase_directive_delimiters(std::string const& directive, unsigned char const& type) {
     size_t  directiveStart;
@@ -33,7 +33,7 @@ struct ruleAliases {
 };
 
 template <typename T>
-static void save_location_conf(T & directive, std::string const& line) {
+static void save_directive_conf(T & directive, std::string const& line) {
     typename ruleAliases<T>::ruleMap    locationRuleMap;
 
     locationRuleMap["listen:"] = &ServerInfo::set_listen_rule;
@@ -71,8 +71,7 @@ static void is_valid_comment_line(std::string const& line, size_t const& ruleSem
     }
 }
 
-//TODO if something is after the location ] it must throw an exception, it doesnt atm
-static ServerInfo::locationDirective    get_location_conf(std::string & locationDirective) {
+static std::string get_location_path(std::string const& locationDirective) {
     size_t locationContentStart = locationDirective.find_first_of('[');
     size_t locationPathStart = locationDirective.find_first_not_of("location: ");
     std::string locationPath = locationDirective.substr(locationPathStart, (locationContentStart - locationPathStart));
@@ -81,28 +80,35 @@ static ServerInfo::locationDirective    get_location_conf(std::string & location
         errno = 134;
         throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
     }
+
     size_t locationPathEnd = locationPath.find_first_of(' ');
     locationPath.erase(locationPathEnd, locationPath.length());
+    return locationPath;
+}
 
+//TODO if something is after the location ] it must throw an exception, it doesnt atm
+static ServerInfo::locationDirective    get_location_conf(std::string & locationDirective) {
+    std::string locationPath = get_location_path(locationDirective);
     locationDirective = erase_directive_delimiters(locationDirective, '[');
-    ServerInfo::s_location location = {};
-    std::cout << "-------------------------------------------\n";
+
+    ServerInfo::s_location location = {}; //TODO
+    std::cout << "------------------ location -------------------------\n";
     while (!locationDirective.empty() && locationDirective.find_first_not_of(" \n") != std::string::npos) {
         std::string line = locationDirective.substr(0, locationDirective.find_first_of('\n') + 1);
         size_t ruleSemicolon = line.find_first_of(';');
 
         is_valid_comment_line(line, ruleSemicolon);
-        save_location_conf(location, line);
+        save_directive_conf(location, line);
 
         locationDirective.erase(0, line.length() + 1);
     }
+    std::cout << "------------------ location end -------------------------\n";
     return std::make_pair(locationPath, location); //TODO
 }
 
-//TODO if something is before the rule name (somelocation:, somelisten:) it must throw an exception, it doesnt atm
-static void get_rule_conf(ServerInfo::s_serverData &data, std::string const& line, size_t const& ruleSemicolon) {
+static void get_general_rule_conf(ServerInfo::s_serverData &data, std::string const& line, size_t const& ruleSemicolon) {
     is_valid_comment_line(line, ruleSemicolon);
-    save_location_conf(data, line);
+    save_directive_conf(data, line);
 }
 
 ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
@@ -132,7 +138,7 @@ ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
                 serverDirective.erase(locationStart, locationDirective.length() + 1);
                 data.serverLocations.push_back(get_location_conf(locationDirective));
             } else {
-                get_rule_conf(data, line, ruleSemicolon);
+                get_general_rule_conf(data, line, ruleSemicolon);
             }
         }
         serverDirective.erase(0, line.length());
