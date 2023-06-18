@@ -2,35 +2,35 @@
 
 NAME = webserv
 
-CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow -g3 -fsanitize=address
+CXX_FLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic -Wshadow
+SANITIZE = -g3 -fsanitize=address
+
 INCLUDES = -I./includes/
 
-OBJDIR := objs/
-SRCS = $(shell find ./srcs -type f -name *.cpp)
-INCLUDE = ./includes/webserv.h
-OBJS = $(addprefix $(OBJDIR), $(notdir $(SRCS:.cpp=.o)))
+SRCS_DIR = srcs
+SRCS = $(shell find $(SRCS_DIR) -type f -name "*.cpp")
+
+OBJ_DIR = objs
+OBJS = $(patsubst $(SRCS_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
 all: $(NAME)
 
-$(NAME): $(OBJS) $(OBJDIR)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
+$(NAME): $(OBJS)
+	$(CXX) $(CXX_FLAGS) $^ -o $@
 
-$(OBJDIR)%.o:srcs/*/%.cpp $(INCLUDE) | $(OBJDIR)
+sanitize: $(OBJS)
+	$(CXX) $(CXX_FLAGS) $(SANITIZE) $^ -o $(NAME)
+
+$(OBJ_DIR)/%.o: $(SRCS_DIR)/%.cpp $(INCLUDE)
+	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(OBJDIR)%.o:srcs/%.cpp $(INCLUDE) | $(OBJDIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
 
 clean:
-	$(RM) -r $(OBJDIR)
+	$(RM) -r $(OBJ_DIR)
 
 fclean: clean
 	$(RM) $(NAME)
 
-re: fclean
-	$(MAKE) all -C ./
+re: fclean all
 
 .PHONY: all clean fclean re
