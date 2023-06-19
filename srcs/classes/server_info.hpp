@@ -37,6 +37,7 @@ public:
 
 private:
     serverInfo  _serverInfo;
+
 public:
     //Constructors
     ServerInfo();
