@@ -24,7 +24,7 @@ static std::string erase_directive_delimiters(std::string const& directive, unsi
     return result;
 }
 
-ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
+ServerInfo::s_serverData   parse_server_conf(std::string & serverDirective) {
     serverDirective = erase_directive_delimiters(serverDirective, '{');
 
     if (serverDirective.find("listen:") == std::string::npos
@@ -60,7 +60,7 @@ ServerInfo::s_serverData   get_directive_conf(std::string & serverDirective) {
                 locationDirective = erase_directive_delimiters(locationDirective, '[');
                 data.serverLocations.push_back(get_location_conf(locationDirective));
             } else {
-                get_general_rule_conf(data, line, ruleSemicolon);
+                get_server_rule_conf(data, line, ruleSemicolon);
             }
         }
         serverDirective.erase(0, line.length());

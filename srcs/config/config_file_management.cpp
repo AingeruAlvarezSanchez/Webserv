@@ -62,7 +62,7 @@ ServerInfo  config_file_parsing(std::string const& fileName) {
             std::string serverDirective = get_server_directive(directiveContent);
             size_t serverDirectiveLength = serverDirective.length();
 
-            serverInfo.setServerData(get_directive_conf(serverDirective));
+            serverInfo.setServerData(parse_server_conf(serverDirective));
             directiveContent.erase(0, serverDirectiveLength + 1);
         }
         return serverInfo;

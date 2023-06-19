@@ -35,7 +35,6 @@ public:
     typedef std::vector< std::pair< std::vector< int >, s_serverData > >::const_iterator  serverInfoIterator;
     typedef std::pair< std::vector< int >, s_serverData >                                 serverInfoPair;
 
-private:
     serverInfo  _serverInfo;
 
 public:
@@ -45,66 +44,6 @@ public:
 
     //Setters
     void    setServerData(s_serverData const& value);
-
-    template<typename T>
-    static void    set_listen_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "listen>" << line;
-    }
-
-    template<typename T>
-    static void    set_server_name_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "server_name>" << line;
-    }
-
-    template<typename T>
-    static void    set_error_page_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "error_page>" << line;
-    }
-
-    template<typename T>
-    static void    set_client_max_body_size_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "client_max_body_size>" << line;
-    }
-
-    template<typename T>
-    static void    set_limit_except_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "limit_except>" << line;
-    }
-
-    template<typename T>
-    static void    set_return_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "return>" << line;
-    }
-
-    template<typename T>
-    static void    set_root_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "root>" << line;
-    }
-
-    template<typename T>
-    static void    set_try_files_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "try_files>" << line;
-    }
-
-    template<typename T>
-    static void    set_auto_index_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "auto_index>" << line;
-    }
-
-    template<typename T>
-    static void    set_index_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "index>" << line;
-    }
-
-    template<typename T>
-    static void    set_cgi_pass_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "cgi_pass>" << line;
-    }
-
-    template<typename T>
-    static void    set_upload_rule(std::string const& line,__attribute_maybe_unused__ T & directive) {
-        std::cout << "upload>" << line;
-    }
 
     //Operator overloads
     ServerInfo& operator=(ServerInfo const& cpy);
