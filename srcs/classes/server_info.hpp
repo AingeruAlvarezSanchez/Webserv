@@ -18,6 +18,7 @@ public:
         std::string                 uploadsRoute;
     }   s_location;
 
+    typedef std::pair < std::string, s_location >                                locationDirective;
     typedef std::vector< std::pair< std::string, s_location > >                  configuredLocations;
     typedef std::vector< std::pair< std::string, s_location > >::const_iterator  configuredLocationsIterator;
     typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > errorPageRoutes;
