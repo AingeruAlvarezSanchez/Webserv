@@ -18,16 +18,16 @@ public:
         std::string                 uploadsRoute;
     }   s_location;
 
-    typedef std::pair< std::string, s_location >                                 locationDirective;
     typedef std::vector< std::pair< std::string, s_location > >                  configuredLocations;
     typedef std::vector< std::pair< std::string, s_location > >::const_iterator  configuredLocationsIterator;
+    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > errorPageRoutes;
 
     typedef struct {
         unsigned short              serverPort;
         std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
-        std::string                 errorPageRoute;
-        unsigned int                maxBodyBytes;
+        errorPageRoutes             errorPageRoute; //TODO this must be a vector of pairs< error_num, route >
+        unsigned long               maxBodyBytes;
         configuredLocations         serverLocations;
     }   s_serverData;
 
@@ -35,12 +35,16 @@ public:
     typedef std::vector< std::pair< std::vector< int >, s_serverData > >::const_iterator  serverInfoIterator;
     typedef std::pair< std::vector< int >, s_serverData >                                 serverInfoPair;
 
+private:
     serverInfo  _serverInfo;
 
 public:
     //Constructors
     ServerInfo();
     ServerInfo(ServerInfo const& original);
+
+    //Getters
+    //TODO getters for all the members of the different structs
 
     //Setters
     void    setServerData(s_serverData const& value);

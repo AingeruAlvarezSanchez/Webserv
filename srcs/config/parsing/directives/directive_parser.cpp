@@ -31,6 +31,9 @@ ServerInfo::s_serverData   parse_server_conf(std::string & serverDirective) {
         || serverDirective.find("server_name:") == std::string::npos) {
         errno = 134;
         throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
+    } else if (serverDirective.find("listen:") != serverDirective.rfind("listen:")) {
+        errno = 134;
+        throw   ServerInfo::BadSyntax("Error: Webserv: Bad syntax"); //TODO maybe as a detail i can give the exact point of error with join
     }
 
     ServerInfo::s_serverData data = {}; //TODO

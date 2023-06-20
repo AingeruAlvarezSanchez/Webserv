@@ -8,35 +8,35 @@ typedef typename std::map< std::string, locationFunction >::iterator   locationR
 
 #include <iostream> //TODO
 static void    set_limit_except_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "limit_except>" << line;
+    //std::cout << "limit_except>" << line;
 }
 
 static void    set_return_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "return>" << line;
+    //std::cout << "return>" << line;
 }
 
 static void    set_root_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "root>" << line;
+    //std::cout << "root>" << line;
 }
 
 static void    set_try_files_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "try_files>" << line;
+    //std::cout << "try_files>" << line;
 }
 
 static void    set_auto_index_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "auto_index>" << line;
+    //std::cout << "auto_index>" << line;
 }
 
 static void    set_index_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "index>" << line;
+    //std::cout << "index>" << line;
 }
 
 static void    set_cgi_pass_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "cgi_pass>" << line;
+    //std::cout << "cgi_pass>" << line;
 }
 
 static void    set_upload_rule(std::string const& line, ServerInfo::s_location & directive) {
-    std::cout << "upload>" << line;
+    //std::cout << "upload>" << line;
 }
 
 void save_location_conf(ServerInfo::s_location & locationDirective, std::string const& line) {
