@@ -1,7 +1,7 @@
-#include <cstring>
-#include <cerrno>
 #include <iostream>
+#include <vector>
 #include "webserv.h"
+#include "server_info.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -15,14 +15,16 @@ int main(int argc, char **argv) {
     }
 
     try {
-        ServerInfo const serverInfo = config_file_parsing(argv[1]);
-        std::cout << "Parsing done.\n";
+        checkFile(argv[1]);
+        std::cout << "---------- Start of parse ----------\n";
+        ServerInfo const serverInfo(argv[1]);
+        std::cout << "----------- End of parse -----------\n";
     }
     catch (std::exception const& e) {
-        if (static_cast<std::string>(strerror(errno)).find("Unknown error") != std::string::npos) {
-            std::cerr << e.what() << "\n";
-        } else {
+        if (static_cast<std::string>(strerror(errno)).find("Unknown error") == std::string::npos) {
             std::cerr << e.what() << strerror(errno) << "\n";
+        } else {
+            std::cerr << e.what() << "\n";
         }
         return 1;
     }

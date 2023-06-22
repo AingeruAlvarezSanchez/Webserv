@@ -2,64 +2,61 @@
 #define SERVER_INFO_HPP
 #include <vector>
 #include <string>
+#include <fstream>
 
-#include <iostream> //TODO
 class ServerInfo {
 public:
-    typedef struct {
+    struct Location {
         bool                        getRequestPermission;
         bool                        postRequestPermission;
         bool                        deleteRequestPermission;
-        std::vector< std::string >  pageFileNames;          //TODO check later
+        //std::vector< std::string >  pageFileNames;          //TODO check later
         std::string                 root;
         bool                        autoIndex;
         std::vector< std::string >  indexFileNames;
         std::vector< std::string >  cgiLanguages;
         std::string                 uploadsRoute;
-    }   s_location;
+    };
 
-    typedef std::pair < std::string, s_location >                                locationDirective;
-    typedef std::vector< std::pair< std::string, s_location > >                  configuredLocations;
-    typedef std::vector< std::pair< std::string, s_location > >::const_iterator  configuredLocationsIterator;
-    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > errorPageRoutes;
+    typedef std::pair < std::string, Location >                 LocationDirectiveType;
+    typedef std::vector< std::pair< std::string, Location > >   ConfiguredLocationsType;
 
-    typedef struct {
+    struct ServerData {
         unsigned short              serverPort;
         std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
-        errorPageRoutes             errorPageRoute; //TODO this must be a vector of pairs< error_num, route >
+        //ErrorPageRoutesType         errorPageRoute; //TODO    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > ErrorPageRoutesType; //TODO change name??
         unsigned long               maxBodyBytes;
-        configuredLocations         serverLocations;
-    }   s_serverData;
-
-    typedef std::vector< std::pair< std::vector< int >, s_serverData > >                  serverInfo;
-    typedef std::vector< std::pair< std::vector< int >, s_serverData > >::const_iterator  serverInfoIterator;
-    typedef std::pair< std::vector< int >, s_serverData >                                 serverInfoPair;
+        ConfiguredLocationsType     serverLocations;
+    };
 
 private:
-    serverInfo  _serverInfo;
+    std::vector< ServerData >   serverDirectives_;
+    std::string                 configFileName_;
+    std::ifstream               configFileStream_;
 
 public:
     //Constructors
     ServerInfo();
-    ServerInfo(ServerInfo const& original);
+    ServerInfo(const std::string& file);
+    ServerInfo(const ServerInfo& original);
+
+    //File operations
+    std::vector< ServerInfo::ServerData > readFileConfig(std::ifstream& file);
 
     //Getters
-    //TODO getters for all the members of the different structs
 
-    //Setters
-    void    setServerData(s_serverData const& value);
 
     //Operator overloads
-    ServerInfo& operator=(ServerInfo const& cpy);
+    ServerInfo& operator=(const ServerInfo& cpy);
 
     //Custom error classes
     class BadSyntax : public std::exception {
     private:
-        char const* _error;
+        const char* _error;
     public:
-        explicit BadSyntax(char const* msg) : _error(msg) {}
-        char const* what() const throw() {
+        explicit BadSyntax(const char* msg) : _error(msg) {}
+        const char* what() const throw() {
             return this->_error;
         }
     };

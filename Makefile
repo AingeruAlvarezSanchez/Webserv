@@ -21,7 +21,7 @@ $(NAME): $(OBJS)
 sanitize: $(OBJS)
 	$(CXX) $(CXX_FLAGS) $(SANITIZE) $^ -o $(NAME)
 
-$(OBJ_DIR)/%.o: $(SRCS_DIR)/%.cpp $(INCLUDE)
+$(OBJ_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
