@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 
+#include <iostream>
 class ServerInfo {
 public:
     struct Location {
@@ -41,8 +42,12 @@ public:
     ServerInfo(const std::string& file);
     ServerInfo(const ServerInfo& original);
 
+    //Configuration file syntax
+    bool    validConfigLine(const std::string& line);
+
     //File operations
-    std::vector< ServerInfo::ServerData > readFileConfig(std::ifstream& file);
+    std::string fetchStreamContent(std::ifstream& fileStream);
+    std::vector< ServerInfo::ServerData > readFileConfig(std::ifstream& fileStream);
 
     //Getters
 
@@ -55,9 +60,9 @@ public:
     private:
         const char* _error;
     public:
-        explicit BadSyntax(const char* msg) : _error(msg) {}
+        BadSyntax(const std::string& msg) : _error(strdup(msg.c_str())) {}
         const char* what() const throw() {
-            return this->_error;
+            return _error;
         }
     };
 
