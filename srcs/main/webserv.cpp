@@ -4,18 +4,17 @@
 #include "server_info.hpp"
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        errno = EINVAL;
+    if (argc > 2) {
+        errno = E2BIG;
         std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
         return 1;
-    } else if (argc > 2) {
-        errno = E2BIG;
+    } else if (argc < 2 || !isValidFile(argv[1])) {
+        errno = EINVAL;
         std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
         return 1;
     }
 
     try {
-        checkFile(argv[1]);
         std::cout << "---------- Start of parse ----------\n";
         ServerInfo const serverInfo(argv[1]);
         std::cout << "----------- End of parse -----------\n";

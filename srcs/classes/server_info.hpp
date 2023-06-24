@@ -1,10 +1,9 @@
 #ifndef SERVER_INFO_HPP
 #define SERVER_INFO_HPP
 #include <vector>
-#include <string>
 #include <fstream>
+#include <cstring>
 
-#include <iostream>
 class ServerInfo {
 public:
     struct Location {
@@ -22,7 +21,7 @@ public:
     typedef std::pair < std::string, Location >                 LocationDirectiveType;
     typedef std::vector< std::pair< std::string, Location > >   ConfiguredLocationsType;
 
-    struct ServerData {
+    struct ServerBlock {
         unsigned short              serverPort;
         std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
@@ -32,25 +31,25 @@ public:
     };
 
 private:
-    std::vector< ServerData >   serverDirectives_;
+    std::vector< ServerBlock >  serverDirectives_;
     std::string                 configFileName_;
     std::ifstream               configFileStream_;
+
+    //Configuration file operations
+    bool    isValidConfigLine(const std::string& line) const;
+    ServerBlock fetchServerBlock(const std::string& fileContent) const;
 
 public:
     //Constructors
     ServerInfo();
-    ServerInfo(const std::string& file);
+    explicit ServerInfo(const std::string& file);
     ServerInfo(const ServerInfo& original);
 
-    //Configuration file syntax
-    bool    validConfigLine(const std::string& line);
-
     //File operations
-    std::string fetchStreamContent(std::ifstream& fileStream);
-    std::vector< ServerInfo::ServerData > readFileConfig(std::ifstream& fileStream);
+    std::string fetchStreamContent();
+    std::vector< ServerInfo::ServerBlock > readFileConfig();
 
     //Getters
-
 
     //Operator overloads
     ServerInfo& operator=(const ServerInfo& cpy);
@@ -60,7 +59,7 @@ public:
     private:
         const char* _error;
     public:
-        BadSyntax(const std::string& msg) : _error(strdup(msg.c_str())) {}
+        explicit BadSyntax(const std::string& msg) : _error(strdup(msg.c_str())) {}
         const char* what() const throw() {
             return _error;
         }

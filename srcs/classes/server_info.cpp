@@ -1,21 +1,19 @@
-#include <sstream>
 #include "server_info.hpp"
 
 //Constructors
 ServerInfo::ServerInfo()
-: serverDirectives_(), configFileStream_(), configFileName_() {}
+: serverDirectives_(), configFileName_(), configFileStream_() {}
 
 ServerInfo::ServerInfo(const std::string& file)
-: configFileStream_(file), configFileName_(file) {
-    serverDirectives_ = readFileConfig(this->configFileStream_);
+: configFileName_(file), configFileStream_(file.c_str()) {
+    serverDirectives_ = readFileConfig();
 }
 
 ServerInfo::ServerInfo(const ServerInfo& original)
-: serverDirectives_(original.serverDirectives_), configFileStream_(original.configFileName_), configFileName_(original.configFileName_) {}
+: serverDirectives_(original.serverDirectives_), configFileName_(original.configFileName_), configFileStream_(original.configFileName_.c_str()) {}
 
-//Configuration file syntax
-#include <iostream> //TODO
-bool ServerInfo::validConfigLine(const std::string& line) {
+//Configuration file operations
+bool ServerInfo::isValidConfigLine(const std::string& line) const {
     size_t firstCharacter = line.find_first_not_of(' ');
 
     if (line[firstCharacter] != '#' && firstCharacter != line.find("server")) {
@@ -24,12 +22,21 @@ bool ServerInfo::validConfigLine(const std::string& line) {
     return true;
 }
 
+#include <iostream> //TODO
+ServerInfo::ServerBlock ServerInfo::fetchServerBlock(const std::string &fileContent) const {
+    std::string serverBlockContent = fileContent.substr(0, fileContent.find_first_of('}') + 1);
+    std::cout << "serverBlock>" << serverBlockContent << "\n";
+
+    ServerBlock serverBlock = {}; //TODO
+    return serverBlock;
+}
+
 //File operations
-std::string ServerInfo::fetchStreamContent(std::ifstream& fileStream) {
+std::string ServerInfo::fetchStreamContent() {
     std::string lineContent;
     std::string fileContent;
 
-    while (std::getline(fileStream, lineContent)) {
+    while (std::getline(configFileStream_, lineContent)) {
         size_t firstCharacter = lineContent.find_first_not_of(' ');
         if (!lineContent.empty() && lineContent[firstCharacter] != '\n') {
             fileContent += lineContent += "\n";
@@ -38,24 +45,28 @@ std::string ServerInfo::fetchStreamContent(std::ifstream& fileStream) {
     return fileContent;
 }
 
-std::vector< ServerInfo::ServerData > ServerInfo::readFileConfig(std::ifstream& fileStream) {
-    std::string fileContent(fetchStreamContent(fileStream));
+#include <cstdlib>
+std::vector< ServerInfo::ServerBlock > ServerInfo::readFileConfig() {
+    std::string fileContent(fetchStreamContent());
 
-    std::vector< ServerData > serverDirectives; //TODO return
+    std::vector< ServerBlock > serverConfigurations; //TODO return
     while (!fileContent.empty()) {
         size_t newLine = fileContent.find_first_of('\n') + 1;
         std::string lineContent(fileContent.substr(0, newLine));
 
         if (lineContent.find("server") != std::string::npos) {
-            std::cout << "server>" << lineContent << "\n";
-        } else if (!validConfigLine(lineContent)) {
+            serverConfigurations.push_back(fetchServerBlock(fileContent));
+
+            std::string tmp = fileContent.substr(fileContent.find_first_of('}') + 1, fileContent.length());
+            //erasefunct(fileContent);
+        } else if (isValidConfigLine(lineContent)) {
+            fileContent.erase(0, newLine);
+        } else {
             errno = 134;
             throw BadSyntax("Webserv: Invalid line on configuration file: " + lineContent);
         }
-        fileContent.erase(0, newLine);
     }
-    std::cout << "fileContent2>" << fileContent;
-    return serverDirectives;
+    return serverConfigurations;
 }
 
 //Operator overloads
