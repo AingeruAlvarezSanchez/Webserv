@@ -6,7 +6,7 @@ ServerInfo::ServerInfo()
 
 ServerInfo::ServerInfo(const std::string& file)
 : configFileName_(file), configFileStream_(file.c_str()) {
-    serverDirectives_ = readFileConfig();
+    readFileConfig();
 }
 
 ServerInfo::ServerInfo(const ServerInfo& original)
@@ -20,11 +20,52 @@ void ServerInfo::eraseLineComments(std::string& line) const {
     }
 }
 
-#include <iostream>
-ServerInfo::ServerBlock ServerInfo::fetchServerBlock(const std::string &fileContent) const {
-    std::cout << "content>" << fileContent << "<end\n";
+bool ServerInfo::isDuplicateData(const std::string& content, char c) const {
+    if (content.find(c) != content.rfind(c)) {
+        return true;
+    }
+    return false;
+}
 
+#include <iostream>
+void ServerInfo::fetchDirective(ServerInfo::ServerBlock &serverBlock, const std::string& lineContent) const {
+    //TODO check for more errors, for the moment will be a simple parse for testing
+    if (isDuplicateData(lineContent, ';') || isDuplicateData(lineContent, ':')) {
+        errno = 134;
+        throw BadSyntax("Webserv: Invalid line on configuration file: " + lineContent);
+    }
+    std::string directive = lineContent.substr(lineContent.find_first_not_of(" \t"), lineContent.find(';'));
+    std::cout << "line>" << lineContent << "<end\n";
+}
+
+ServerInfo::ServerBlock ServerInfo::fetchServerBlock(const std::string &serverBlock) const {
+    //TODO errors between "server" and '{'
+    size_t blockContentStart = serverBlock.find('{') + 1;
+    std::string blockContent = serverBlock.substr(blockContentStart, serverBlock.length() - blockContentStart - 1);
+
+    std::cout << "----------- Start of server block ----------\n";
     ServerBlock serverBlockInfo = {}; //TODO
+    while (!blockContent.empty()) {
+        std::string lineContent(blockContent.substr(0, blockContent.find('\n')));
+        std::string locationBlock;
+
+        eraseLineComments(lineContent);
+        if (lineContent.empty() || lineContent.find_first_not_of(" \t") == std::string::npos) {
+            blockContent.erase(0, blockContent.find('\n') + 1);
+            continue ;
+        } else if (lineContent.find(';') != std::string::npos) {
+            fetchDirective(serverBlockInfo, lineContent);
+            blockContent.erase(0, blockContent.find('\n') + 1);
+        } else if (lineContent.find("location") != std::string::npos) {
+            locationBlock = blockContent.substr(0, blockContent.find(']') + 1);
+            //TODO fetchLocationBlock(serverBlockInfo, lineContent); which calls fetchDirective
+            blockContent.erase(0, locationBlock.length());
+        } else {
+            errno = 134;
+            throw BadSyntax("Webserv: Invalid line on configuration file: " + lineContent);
+        }
+    }
+    std::cout << "------------ End of server block -----------\n";
     return serverBlockInfo;
 }
 
@@ -42,10 +83,9 @@ std::string ServerInfo::fetchStreamContent() {
     return fileContent;
 }
 
-std::vector< ServerInfo::ServerBlock > ServerInfo::readFileConfig() {
+void ServerInfo::readFileConfig() {
     std::string fileContent(fetchStreamContent());
 
-    std::vector< ServerBlock > serverConfigurations; //TODO return
     while (!fileContent.empty()) {
         std::string lineContent(fileContent.substr(0, fileContent.find('\n')));
         std::string serverBlock;
@@ -56,14 +96,13 @@ std::vector< ServerInfo::ServerBlock > ServerInfo::readFileConfig() {
             continue ;
         } else if (lineContent.find("server") != std::string::npos) {
             serverBlock = fileContent.substr(0, fileContent.find('}') + 1);
-            serverConfigurations.push_back(fetchServerBlock(serverBlock));
+            serverDirectives_.push_back(fetchServerBlock(serverBlock));
         } else {
             errno = 134;
             throw BadSyntax("Webserv: Invalid line on configuration file: " + lineContent);
         }
         fileContent.erase(0, serverBlock.length());
     }
-    return serverConfigurations;
 }
 
 //Operator overloads

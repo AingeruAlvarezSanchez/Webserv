@@ -38,6 +38,8 @@ private:
     //Configuration file operations
     void eraseLineComments(std::string& line) const;
     ServerBlock fetchServerBlock(const std::string& fileContent) const;
+    void fetchDirective(ServerBlock& serverBlock, const std::string& lineContent) const;
+    bool isDuplicateData(const std::string& content, char c) const;
 
 public:
     //Constructors
@@ -47,7 +49,7 @@ public:
 
     //File operations
     std::string fetchStreamContent();
-    std::vector< ServerInfo::ServerBlock > readFileConfig();
+    void readFileConfig();
 
     //Getters
 
