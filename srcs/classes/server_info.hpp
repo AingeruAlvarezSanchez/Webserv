@@ -36,9 +36,8 @@ private:
     std::ifstream               configFileStream_;
 
     //Configuration file operations
-    bool    isValidConfigLine(const std::string& line) const;
+    void eraseLineComments(std::string& line) const;
     ServerBlock fetchServerBlock(const std::string& fileContent) const;
-    void eraseParsedBlock(std::string& fileContent) const;
 
 public:
     //Constructors

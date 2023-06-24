@@ -13,35 +13,19 @@ ServerInfo::ServerInfo(const ServerInfo& original)
 : serverDirectives_(original.serverDirectives_), configFileName_(original.configFileName_), configFileStream_(original.configFileName_.c_str()) {}
 
 //Configuration file operations
-#include <iostream>
-bool ServerInfo::isValidConfigLine(const std::string& line) const {
-    size_t firstCharacter = line.find_first_not_of(" \t\n");
-
-    if (line[firstCharacter] != '#' && firstCharacter != line.find("server")) {
-        return false;
+void ServerInfo::eraseLineComments(std::string& line) const {
+    size_t commentStart = line.find('#');
+    if (commentStart != std::string::npos) {
+        line.erase(commentStart, line.length() - commentStart);
     }
-    return true;
 }
 
-#include <iostream> //TODO
+#include <iostream>
 ServerInfo::ServerBlock ServerInfo::fetchServerBlock(const std::string &fileContent) const {
-    std::string serverBlock = fileContent.substr(0, fileContent.find_first_of('}') + 1);
-    std::cout << "serverBlock>" << serverBlock << "<EndServerBlock\n";
+    std::cout << "content>" << fileContent << "<end\n";
 
     ServerBlock serverBlockInfo = {}; //TODO
     return serverBlockInfo;
-}
-
-void ServerInfo::eraseParsedBlock(std::string& fileContent) const {
-    std::string tmp = fileContent.substr(fileContent.find_first_of('}'), fileContent.length());
-    std::string postBlockContent = tmp.substr(1, tmp.find_first_of("server") - 1);
-
-    if (isValidConfigLine(postBlockContent)) {
-        fileContent.erase(0, fileContent.find_first_of('}') + postBlockContent.length() + 1);
-    } else {
-        errno = 134;
-        throw BadSyntax("Webserv: Invalid line on configuration file: " + tmp.substr(0, postBlockContent.find_first_not_of(" \t\n") + 2));
-    }
 }
 
 //File operations
@@ -63,15 +47,21 @@ std::vector< ServerInfo::ServerBlock > ServerInfo::readFileConfig() {
 
     std::vector< ServerBlock > serverConfigurations; //TODO return
     while (!fileContent.empty()) {
-        std::string lineContent(fileContent.substr(0, fileContent.find_first_of('\n') + 1));
+        std::string lineContent(fileContent.substr(0, fileContent.find('\n')));
+        std::string serverBlock;
 
-        if (lineContent.find("server") != std::string::npos) {
-            serverConfigurations.push_back(fetchServerBlock(fileContent));
+        eraseLineComments(lineContent);
+        if (lineContent.empty() || lineContent.find_first_not_of(" \t") == std::string::npos) {
+            fileContent.erase(0, fileContent.find('\n') + 1);
+            continue ;
+        } else if (lineContent.find("server") != std::string::npos) {
+            serverBlock = fileContent.substr(0, fileContent.find('}') + 1);
+            serverConfigurations.push_back(fetchServerBlock(serverBlock));
         } else {
             errno = 134;
             throw BadSyntax("Webserv: Invalid line on configuration file: " + lineContent);
         }
-        eraseParsedBlock(fileContent);
+        fileContent.erase(0, serverBlock.length());
     }
     return serverConfigurations;
 }
