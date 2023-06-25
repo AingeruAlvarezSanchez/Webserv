@@ -1,6 +1,7 @@
 #ifndef SERVER_INFO_HPP
 #define SERVER_INFO_HPP
 #include <vector>
+#include <map>
 #include <fstream>
 #include <cstring>
 
@@ -20,13 +21,16 @@ public:
 
     typedef std::pair < std::string, Location >                 LocationDirectiveType;
     typedef std::vector< std::pair< std::string, Location > >   ConfiguredLocationsType;
+    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > ErrorPagesType;
+    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > >::iterator ErrorPagesTypeIt;
+    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > >::const_iterator ErrorPagesTypeConstIt;
 
     struct ServerBlock {
         unsigned short              serverPort;
         std::vector< std::string >  allowedHosts;
         std::vector< std::string >  serverNames;
-        //ErrorPageRoutesType         errorPageRoute; //TODO    typedef std::vector< std::pair< unsigned short, std::vector<std::string> > > ErrorPageRoutesType; //TODO change name??
-        unsigned long               maxBodyBytes;
+        ErrorPagesType              errorPageRoute;
+        unsigned int                maxBodyBytes;
         ConfiguredLocationsType     serverLocations;
     };
 
@@ -40,6 +44,8 @@ private:
     ServerBlock fetchServerBlock(const std::string& fileContent) const;
     void fetchDirective(ServerBlock& serverBlock, const std::string& lineContent) const;
     bool isDuplicateData(const std::string& content, char c) const;
+    bool isValidBlock(const std::string& block) const;
+    void fillDirectiveValue(ServerBlock& serverBlock, const std::string& value, const std::string& name) const;
 
 public:
     //Constructors
@@ -47,11 +53,16 @@ public:
     explicit ServerInfo(const std::string& file);
     ServerInfo(const ServerInfo& original);
 
+    //Getters
+    unsigned short getServerPort(int serverNb) const;
+    std::vector< std::string >  getServerHosts(int serverNb) const;
+    std::vector< std::string > getServerNames(int serverNb) const;
+    unsigned int getServerMaxBytes(int serverNb) const;
+    std::vector< std::string > getServerErrorPageRoutes(int serverNb, unsigned short errorNb) const;
+
     //File operations
     std::string fetchStreamContent();
     void readFileConfig();
-
-    //Getters
 
     //Operator overloads
     ServerInfo& operator=(const ServerInfo& cpy);
