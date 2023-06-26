@@ -32,16 +32,15 @@ unsigned int ServerInfo::getServerMaxBytes(int serverNb) const {
     return serverDirectives_[serverNb].maxBodyBytes;
 }
 
-std::vector<std::string> ServerInfo::getServerErrorPageRoutes(int serverNb, unsigned short errorNb) const {
-    //TODO it wont let me??
-    for (ErrorPagesTypeConstIt it = serverDirectives_[serverNb].errorPageRoute.begin();
-        it != serverDirectives_[serverNb].errorPageRoute.end(); it++) {
+ServerInfo::ErrorPagesTypeConstIt ServerInfo::getServerErrorPageRoutes(int serverNb, unsigned short errorNb) const {
+    ErrorPagesTypeConstIt it = serverDirectives_[serverNb].errorPageRoute.begin();
+    while (it != serverDirectives_[serverNb].errorPageRoute.end()) {
         if (errorNb == it->first) {
-            return it->second;
+            return it;
         }
+        it++;
     }
-
-    //TODO when not found
+    return it;
 }
 
 //Configuration file operations
@@ -110,8 +109,8 @@ void ServerInfo::fillDirectiveValue(ServerBlock& serverBlock, const std::string&
                 std::pair< unsigned short, std::vector<std::string> > errorPageRoutePair;
                 std::vector< std::string > newErrorPageRoutes;
                 unsigned short newErrorCode = static_cast<unsigned short>(strtol(firstValue.c_str(), NULL, 10));
-                newErrorPageRoutes.push_back(secondValue);
 
+                newErrorPageRoutes.push_back(secondValue);
                 errorPageRoutePair = std::make_pair(newErrorCode, newErrorPageRoutes);
                 serverBlock.errorPageRoute.push_back(errorPageRoutePair);
             }

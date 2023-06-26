@@ -58,7 +58,7 @@ public:
     std::vector< std::string >  getServerHosts(int serverNb) const;
     std::vector< std::string > getServerNames(int serverNb) const;
     unsigned int getServerMaxBytes(int serverNb) const;
-    std::vector< std::string > getServerErrorPageRoutes(int serverNb, unsigned short errorNb) const;
+    ErrorPagesTypeConstIt getServerErrorPageRoutes(int serverNb, unsigned short errorNb) const;
 
     //File operations
     std::string fetchStreamContent();
