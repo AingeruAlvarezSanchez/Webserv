@@ -82,7 +82,7 @@ void ServerInfo::fillDirectiveValue(ServerBlock& serverBlock, const std::string&
         } else if (name == "client_max_body_size:") {
             if (value.find("mb")) {
                 serverBlock.maxBodyBytes = strtol(value.c_str(), NULL, 10) * 1000000;
-            } else if (value.find("mb")) {
+            } else if (value.find("kb")) {
                 serverBlock.maxBodyBytes = strtol(value.c_str(), NULL, 10) * 1000;
             } else {
                 serverBlock.maxBodyBytes = strtol(value.c_str(), NULL, 10);
