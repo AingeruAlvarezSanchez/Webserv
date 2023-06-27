@@ -1,39 +1,33 @@
+#include "../classes/server_conf.hpp"
 #include <iostream>
-#include <vector>
-#include "webserv.h"
-#include "server_info.hpp"
 
 int main(int argc, char **argv) {
-    if (argc > 2) {
-        errno = E2BIG;
-        std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
-        return 1;
-    } else if (argc < 2 || !isValidFile(argv[1])) {
-        errno = EINVAL;
-        std::cerr << "Webserv: could not execute: " << strerror(errno) << "\n";
-        return 1;
-    }
+    ServerConf::LocationBlock location1 = {};
+    ServerConf serverConf;
 
-    try {
-        std::cout << "---------- Start of parse ----------\n";
-        ServerInfo const serverInfo(argv[1]);
-        std::cout << "----------- End of parse -----------\n";
-        //TODO testing getters
-        std::cout << "port>" << serverInfo.getServerPort(0) << "<port\n";
-        std::cout << "server_name0>" << serverInfo.getServerNames(0)[0] << "<server_name0\n";
-        std::cout << "server_name1>" << serverInfo.getServerNames(0)[1] << "<server_name1\n";
-        std::cout << "allowed_host0>" << serverInfo.getServerHosts(0)[0] << "<allowed_host0\n";
-        std::cout << "max_bytes>" << serverInfo.getServerMaxBytes(0) << "<max_bytes\n";
-        std::cout << "errorPageRoutesNb>" << serverInfo.getServerErrorPageRoutes(0, 404)->second[0] << "<errorPageRoutesNb\n";
-        //TODO testing getters
+    serverConf.setPort(80);
+    serverConf.setHost("0.0.0.0");
+    serverConf.addServName("example.com");
+    serverConf.addServName("example2.com");
+    serverConf.addServName("example3.com");
+    serverConf.addServName("example.com");
+    serverConf.addErrorPage(404, "/error");
+    serverConf.addErrorPage(405, "/error/405");
+    serverConf.addErrorPage(404, "/error");
+    serverConf.setMaxBytes(1000);
+    serverConf.addLocation(location1);
+    std::cout << "Port>" << serverConf.serverBlock().port << "\n";
+    std::cout << "Host>" << serverConf.serverBlock().host << "\n";
+    std::cout << "Maxbytes>" << serverConf.serverBlock().maxBytes << "\n";
+    for (auto it  : serverConf.serverBlock().servNames) {
+        std::cout << "name: " << it << " | ";
     }
-    catch (std::exception const& e) {
-        if (static_cast<std::string>(strerror(errno)).find("Unknown error") == std::string::npos) {
-            std::cerr << e.what() << strerror(errno) << "\n";
-        } else {
-            std::cerr << e.what() << "\n";
+    std::cout << "\n";
+    for (const auto& it : serverConf.serverBlock().defErrorPage) {
+        std::cout << "error page: " << it.first << " -> ";
+        for (const auto& error : it.second) {
+            std::cout << error << " | ";
         }
-        return 1;
     }
     return 0;
 }
