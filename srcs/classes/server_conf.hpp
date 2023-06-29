@@ -71,7 +71,7 @@ public:
 
     //Server Block Modifiers
     void    setPort(uint_t port);
-    void    setHost(const std::string &host, ushort_t ipvType);
+    void    setHost(const std::string &host, ushort_t af);
     void    addServName(const std::string &name);
     void    addErrorPage(uint_t code, const std::string &path);
     void    setMaxBytes(ulong_t bytes);
@@ -82,7 +82,7 @@ public:
 
     //Location Block Modifiers
     LocationIterator    addLocation(const LocationBlock &block);
-    LocationIterator    setLocationPath(const std::string &name = "/", const std::string &dst = ""); //TODO
+    LocationIterator    setLocationPath(const std::string &name, const std::string &dst = "");
     LocationIterator    flipPermissions(uint_t method, const std::string& dst);
     LocationIterator    addlocationRedir(uint_t code, const std::string &path, const std::string &dst);
     LocationIterator    setRootDir(const std::string &name, const std::string &dst);
@@ -99,7 +99,7 @@ public:
 
     template<typename Iterator>
     void    eraseRedir(uint_t code, const Iterator &begin, const Iterator &end, const std::string &dst = "") {
-        if (dst != "") {
+        if (!dst.empty()) {
             LocationIterator it = findLocation(dst);
             if (it != locationEnd()) {
                 UshortVecMap::iterator redirIt = it->lo_redirs.find(code);
@@ -113,7 +113,7 @@ public:
 
     template<typename Iterator>
     void    eraseIndex(const Iterator &begin, const Iterator &end, const std::string &dst = "") {
-        if (dst != "") {
+        if (!dst.empty()) {
             LocationIterator it = findLocation(dst);
             if (it != locationEnd()) {
                 it->lo_indexes.erase(begin, end);

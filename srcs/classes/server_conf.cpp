@@ -61,11 +61,11 @@ void ServerConf::setPort(uint_t port) {
     serverBlock_.port = port;
 }
 
-void ServerConf::setHost(const std::string &host, ushort_t ipvType) {
-    if (ipvType == AF_INET) {
+void ServerConf::setHost(const std::string &host, ushort_t af) {
+    if (af == AF_INET) {
         if (!inet_pton(AF_INET, host.c_str(), &serverBlock_.ipv4Host.s_addr))
             throw   std::out_of_range("Invalid host");
-    } else if (ipvType == AF_INET6) {
+    } else if (af == AF_INET6) {
         if (!inet_pton(AF_INET6, host.c_str(), &serverBlock_.ipv6Host.s6_addr))
             throw   std::out_of_range("Invalid host");
     }
@@ -80,7 +80,6 @@ void ServerConf::addServName(const std::string &name) {
 
 void ServerConf::addErrorPage(uint_t code, const std::string &path) {
     UshortVecMap::iterator it = serverBlock_.defErrorPage.find(code);
-
     if (it != serverBlock_.defErrorPage.end()) {
         if (std::find(it->second.begin(), it->second.end(), path) == it->second.end()) {
             it->second.push_back(path);
@@ -128,7 +127,6 @@ ServerConf::LocationIterator ServerConf::addLocation(const LocationBlock &block)
 
 ServerConf::LocationIterator ServerConf::setLocationPath(const std::string &name, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd() || name.empty()) {
         LocationBlock newBlock = {};
         newBlock.path = name;
@@ -137,13 +135,13 @@ ServerConf::LocationIterator ServerConf::setLocationPath(const std::string &name
         addLocation(newBlock);
         return LocationIterator(--locationEnd());
     }
+
     it->path = name;
     return it;
 }
 
 ServerConf::LocationIterator ServerConf::flipPermissions(uint_t method, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it != locationEnd()) {
         switch (method) {
             case 0:
@@ -163,7 +161,6 @@ ServerConf::LocationIterator ServerConf::flipPermissions(uint_t method, const st
 
 ServerConf::LocationIterator ServerConf::addlocationRedir(uint_t code, const std::string &path, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
         newBlock.path = dst;
@@ -185,7 +182,6 @@ ServerConf::LocationIterator ServerConf::addlocationRedir(uint_t code, const std
 
 ServerConf::LocationIterator ServerConf::setRootDir(const std::string &name, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
         newBlock.path = dst;
@@ -194,13 +190,13 @@ ServerConf::LocationIterator ServerConf::setRootDir(const std::string &name, con
         addLocation(newBlock);
         return LocationIterator(--locationEnd());
     }
+
     it->rootDir = name;
     return it;
 }
 
 ServerConf::LocationIterator ServerConf::setAutoIndex(bool value, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
         newBlock.path = dst;
@@ -210,13 +206,13 @@ ServerConf::LocationIterator ServerConf::setAutoIndex(bool value, const std::str
         addLocation(newBlock);
         return LocationIterator(--locationEnd());
     }
+
     it->autoIndex = value;
     return it;
 }
 
 ServerConf::LocationIterator ServerConf::addLocationIndex(const std::string &index, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
         newBlock.path = dst;
@@ -226,6 +222,7 @@ ServerConf::LocationIterator ServerConf::addLocationIndex(const std::string &ind
         addLocation(newBlock);
         return LocationIterator(--locationEnd());
     }
+
     if (std::find(it->lo_indexes.begin(), it->lo_indexes.end(), index) == it->lo_indexes.end()) {
         it->lo_indexes.push_back(index);
     }
@@ -234,7 +231,6 @@ ServerConf::LocationIterator ServerConf::addLocationIndex(const std::string &ind
 
 ServerConf::LocationIterator ServerConf::setUploadDir(const std::string &path, const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
         newBlock.path = dst;
@@ -243,13 +239,13 @@ ServerConf::LocationIterator ServerConf::setUploadDir(const std::string &path, c
         addLocation(newBlock);
         return LocationIterator(--locationEnd());
     }
+
     it->uploadDir = path;
     return it;
 }
 
 void ServerConf::eraseLocation(const std::string &dst) {
     LocationIterator it = findLocation(dst);
-
     if (it != locationEnd()) {
         serverBlock_.locationBlock.erase(it);
     }
@@ -264,7 +260,7 @@ void ServerConf::clearLocations() {
 }
 
 void ServerConf::eraseRedir(uint_t code, const std::string &name, const std::string &dst) {
-    if (dst != "") {
+    if (!dst.empty()) {
         LocationIterator it = findLocation(dst);
         if (it != locationEnd()) {
             UshortVecMap::iterator redirIt = it->lo_redirs.find(code);
@@ -287,7 +283,7 @@ void ServerConf::eraseRedir(uint_t code, const std::string &name, const std::str
 }
 
 void ServerConf::eraseIndex(const std::string &name, const std::string &dst) {
-    if (dst != "") {
+    if (!dst.empty()) {
         LocationIterator it = findLocation(dst);
         if (it != locationEnd()) {
             StrVector::iterator strIt = std::find(it->lo_indexes.begin(), it->lo_indexes.end(), name);
