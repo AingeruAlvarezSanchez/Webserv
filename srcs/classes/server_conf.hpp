@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <ostream>
+#include <climits>
 
 #define GET     0
 #define POST    1
@@ -18,8 +20,8 @@ public:
     typedef unsigned short  ulong_t;
 
     //Non Class-dependant containers definitions
-    typedef std::map<ushort_t, std::vector<std::string> >   UshortVecMap;
-    typedef std::vector<std::string>                        StrVector;
+    typedef std::vector<std::string>        StrVector;
+    typedef std::map<ushort_t, StrVector>   UshortVecMap;
 
     struct LocationBlock {
         std::string                 path;
@@ -30,6 +32,7 @@ public:
         std::string                 rootDir;
         bool                        autoIndex;
         StrVector                   lo_indexes;
+        StrVector                   cgiLangs;
         std::string                 uploadDir;
     };
 
@@ -39,9 +42,8 @@ public:
     typedef std::vector<LocationBlock>::const_iterator  LocationConstIterator;
 
     struct ServerBlock {
-        ushort_t                    port;
-        struct in_addr              ipv4Host;
-        struct in6_addr             ipv6Host;
+        sockaddr_in                 ipv4Addr;
+        sockaddr_in6                ipv6Addr;
         StrVector                   servNames;
         UshortVecMap                defErrorPage;
         uint_t                      maxBytes;
@@ -71,10 +73,10 @@ public:
 
     //Server Block Modifiers
     void    setPort(uint_t port);
-    void    setHost(const std::string &host, ushort_t af);
+    void    setHost(const std::string &host, ushort_t domain);
     void    addServName(const std::string &name);
     void    addErrorPage(uint_t code, const std::string &path);
-    void    setMaxBytes(ulong_t bytes);
+    void    setMaxBytes(uint_t bytes);
     void    eraseServName(const std::string &name);
     void    eraseServName(const StrVector::iterator &begin, const StrVector::iterator &end);
     void    eraseErrorPage(uint_t code, const std::string &name);
@@ -84,10 +86,11 @@ public:
     LocationIterator    addLocation(const LocationBlock &block);
     LocationIterator    setLocationPath(const std::string &name, const std::string &dst = "");
     LocationIterator    flipPermissions(uint_t method, const std::string& dst);
-    LocationIterator    addlocationRedir(uint_t code, const std::string &path, const std::string &dst);
+    LocationIterator    addLocationRedir(uint_t code, const std::string &path, const std::string &dst);
     LocationIterator    setRootDir(const std::string &name, const std::string &dst);
     LocationIterator    setAutoIndex(bool value, const std::string &dst);
     LocationIterator    addLocationIndex(const std::string &index, const std::string &dst);
+    LocationIterator    addLocationCgi(const std::string &cgi, const std::string &dst);
     LocationIterator    setUploadDir(const std::string& path, const std::string &dst);
     void                eraseLocation(const std::string &dst);
     void                eraseLocation(const LocationIterator &begin, const LocationIterator &end);
@@ -131,5 +134,6 @@ public:
     ~ServerConf();
 };
 
+std::ostream    &operator<<(std::ostream &os, const ServerConf &serv);
 
 #endif //WEBSERV_SERVERCONF_HPP

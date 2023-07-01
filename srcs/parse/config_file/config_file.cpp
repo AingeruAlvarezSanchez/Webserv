@@ -11,14 +11,15 @@ std::string config_file_content(const std::string &file) {
     return content;
 }
 
-int config_file_parser(std::string &content, ServerConf &serverConf) {
+int config_file_parser(std::string &content, std::vector<ServerConf> &serverConf) {
     while (!content.empty()) {
         size_t endl = content.find('\n');
         std::string line = content.substr(0, endl + 1);
         if (line.find("server") != std::string::npos) {
             size_t size = block_size(content, '}');
             std::string block = fetch_block(content, content.find('{') + 1, content.find('}'));
-            if (parse_block(block, serverConf, "location") == -1) {
+            serverConf.push_back(ServerConf());
+            if (parse_block(block, serverConf.back(), "", "location") == -1) {
                 return -1;
             }
             content.erase(0, size + 1);

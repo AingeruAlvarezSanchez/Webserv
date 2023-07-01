@@ -1,11 +1,12 @@
 #include "webserv.h"
-#include "../../classes/server_conf.hpp" //TODO just for clion
 
 struct Directives {
 public:
-    typedef std::map<std::string, int(*)(ServerConf &serverConf, const std::string &value, const std::string &code)>::iterator   Iterator;
+    typedef std::map<std::string, int(*)(ServerConf &serverConf, const std::string &value,
+            const std::string &path, const std::string &code)>::iterator   Iterator;
 public:
-    std::map<std::string, int(*)(ServerConf &serverConf, const std::string &value, const std::string &code)> directiveMap;
+    std::map<std::string, int(*)(ServerConf &serverConf, const std::string &value,
+            const std::string &path, const std::string &code)> directiveMap;
     Directives() {
         directiveMap["port:"] = &port_set;
         directiveMap["host:"] = &host_set;
@@ -30,7 +31,7 @@ std::string fetch_directive(const std::string &line) {
     return content;
 }
 
-int parse_directive(const std::string &content, ServerConf &serverConf) {
+int parse_directive(const std::string &content, ServerConf &serverConf, const std::string &path) {
     static Directives  directives;
 
     size_t directiveEnd = content.find(':') + 1;
@@ -40,8 +41,16 @@ int parse_directive(const std::string &content, ServerConf &serverConf) {
 
     Directives::Iterator it = directives.directiveMap.find(name);
     if (it != directives.directiveMap.end()) {
-        if (it->second(serverConf, value, "") == -1) {
-            return -1;
+        if (value.find("->") != std::string::npos) {
+            std::string code = value.substr(0, value.find("->"));
+            value.erase(0, value.find("->") + 2);
+            if (it->second(serverConf, value, path, code) == -1) {
+                return -1;
+            }
+        } else {
+            if (it->second(serverConf, value, path, "") == -1) {
+                return -1;
+            }
         }
     } else {
         return -1;

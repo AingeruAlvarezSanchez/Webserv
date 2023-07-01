@@ -58,16 +58,22 @@ void ServerConf::setPort(uint_t port) {
     if (port > 65535) {
         throw   std::out_of_range("Invalid port");
     }
-    serverBlock_.port = port;
+    serverBlock_.ipv4Addr.sin_port = port;
+    serverBlock_.ipv6Addr.sin6_port = port;
 }
 
-void ServerConf::setHost(const std::string &host, ushort_t af) {
-    if (af == AF_INET) {
-        if (!inet_pton(AF_INET, host.c_str(), &serverBlock_.ipv4Host.s_addr))
+void ServerConf::setHost(const std::string &host, ushort_t domain) {
+    if (domain == AF_INET) {
+        if (!inet_pton(AF_INET, host.c_str(), &serverBlock_.ipv4Addr.sin_addr.s_addr)) {
             throw   std::out_of_range("Invalid host");
-    } else if (af == AF_INET6) {
-        if (!inet_pton(AF_INET6, host.c_str(), &serverBlock_.ipv6Host.s6_addr))
+        }
+        serverBlock_.ipv4Addr.sin_family = AF_INET;
+    } else if (domain == AF_INET6) {
+        if (!inet_pton(AF_INET6, host.c_str(), &serverBlock_.ipv6Addr.sin6_addr)) {
             throw   std::out_of_range("Invalid host");
+        }
+        serverBlock_.ipv6Addr.sin6_family = AF_INET6;
+        serverBlock_.ipv4Addr.sin_addr.s_addr = UINT_MAX;
     }
 }
 
@@ -89,7 +95,7 @@ void ServerConf::addErrorPage(uint_t code, const std::string &path) {
     }
 }
 
-void ServerConf::setMaxBytes(ulong_t bytes) {
+void ServerConf::setMaxBytes(uint_t bytes) {
     serverBlock_.maxBytes = bytes;
 }
 
@@ -133,7 +139,7 @@ ServerConf::LocationIterator ServerConf::setLocationPath(const std::string &name
         newBlock.rootDir = name;
         newBlock.uploadDir = name;
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     it->path = name;
@@ -159,7 +165,7 @@ ServerConf::LocationIterator ServerConf::flipPermissions(uint_t method, const st
     return locationEnd();
 }
 
-ServerConf::LocationIterator ServerConf::addlocationRedir(uint_t code, const std::string &path, const std::string &dst) {
+ServerConf::LocationIterator ServerConf::addLocationRedir(uint_t code, const std::string &path, const std::string &dst) {
     LocationIterator it = findLocation(dst);
     if (it == locationEnd()) {
         LocationBlock newBlock = {};
@@ -168,7 +174,7 @@ ServerConf::LocationIterator ServerConf::addlocationRedir(uint_t code, const std
         newBlock.uploadDir = dst;
         newBlock.lo_redirs.insert(std::make_pair(code, StrVector(1, path)));
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     UshortVecMap::iterator mapIt = it->lo_redirs.find(code);
@@ -188,7 +194,7 @@ ServerConf::LocationIterator ServerConf::setRootDir(const std::string &name, con
         newBlock.rootDir = name;
         newBlock.uploadDir = dst;
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     it->rootDir = name;
@@ -204,7 +210,7 @@ ServerConf::LocationIterator ServerConf::setAutoIndex(bool value, const std::str
         newBlock.uploadDir = dst;
         newBlock.autoIndex = value;
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     it->autoIndex = value;
@@ -220,11 +226,29 @@ ServerConf::LocationIterator ServerConf::addLocationIndex(const std::string &ind
         newBlock.uploadDir = dst;
         newBlock.lo_indexes.push_back(index);
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     if (std::find(it->lo_indexes.begin(), it->lo_indexes.end(), index) == it->lo_indexes.end()) {
         it->lo_indexes.push_back(index);
+    }
+    return it;
+}
+
+ServerConf::LocationIterator ServerConf::addLocationCgi(const std::string &cgi, const std::string &dst) {
+    LocationIterator it = findLocation(dst);
+    if (it == locationEnd()) {
+        LocationBlock newBlock = {};
+        newBlock.path = dst;
+        newBlock.rootDir = dst;
+        newBlock.uploadDir = dst;
+        newBlock.cgiLangs.push_back(cgi);
+        addLocation(newBlock);
+        return --locationEnd();
+    }
+
+    if (std::find(it->cgiLangs.begin(), it->cgiLangs.end(), cgi) == it->cgiLangs.end()) {
+        it->cgiLangs.push_back(cgi);
     }
     return it;
 }
@@ -237,7 +261,7 @@ ServerConf::LocationIterator ServerConf::setUploadDir(const std::string &path, c
         newBlock.rootDir = dst;
         newBlock.uploadDir = path;
         addLocation(newBlock);
-        return LocationIterator(--locationEnd());
+        return --locationEnd();
     }
 
     it->uploadDir = path;
@@ -305,3 +329,57 @@ const ServerConf::ServerBlock &ServerConf::server() const {
 
 //Destructor
 ServerConf::~ServerConf() {}
+
+//Overload for operator<<
+std::ostream    &operator<<(std::ostream &os, const ServerConf &serv) {
+    os << "Port: ";
+    if (serv.server().ipv4Addr.sin_addr.s_addr != UINT_MAX) {
+        os << serv.server().ipv4Addr.sin_port << "\n";
+        os << "Host: ";
+        os << inet_ntoa(serv.server().ipv4Addr.sin_addr) << "\n";
+    } else {
+        os << serv.server().ipv6Addr.sin6_port << "\n";
+        os << "Host: ";
+        //TODO host, inet_ntop
+    }
+    os << "Aliases:\n";
+    for (ServerConf::StrVector::const_iterator it = serv.server().servNames.begin();
+            it != serv.server().servNames.end(); it++)
+    os << " -> " << *it << "\n";
+    os << "Error redirections:\n";
+    for (auto it : serv.server().defErrorPage) {
+        os << " -> " << it.first << "\n";
+        for (ServerConf::StrVector::const_iterator it2 = it.second.begin(); it2 != it.second.end(); it2++) {
+            os << "     * " << *it2 << "\n";
+        }
+    }
+    os << "Max bytes: " << serv.server().maxBytes << "\n";
+    for (ServerConf::LocationConstIterator it = serv.locationConstBegin(); it != serv.locationConstEnd(); it++) {
+        os << "----------\n";
+        os << "Location: " << it->path << "\n";
+        os << " -> Allowed methods:\n";
+        os << "     * GET: " << it->allowGet << "\n";
+        os << "     * POST: " << it->allowPost << "\n";
+        os << "     * DELETE: " << it->allowDelete << "\n";
+        os << " -> Root: " << it->rootDir << "\n";
+        os << " -> Upload Dir: " << it->uploadDir << "\n";
+        os << " -> Auto Index: " << it->autoIndex << "\n";
+        os << " -> Index list:\n";
+        for (ServerConf::StrVector::const_iterator it2 = it->lo_indexes.begin(); it2 != it->lo_indexes.end(); it2++) {
+            os << "     * " << *it2 << "\n";
+        }
+        os << " -> Cgi Languages:\n";
+        for (ServerConf::StrVector::const_iterator it2 = it->cgiLangs.begin(); it2 != it->cgiLangs.end(); it2++) {
+            os << "     * " << *it2 << "\n";
+        }
+        os << " -> Redirections:\n";
+        for (auto it2: it->lo_redirs) {
+            os << "     * " << it2.first << "\n";
+            for (ServerConf::StrVector::const_iterator it3 = it2.second.begin(); it3 != it2.second.end(); it3++) {
+                os << "         - " << *it3 << "\n";
+            }
+        }
+        os << "----------\n";
+    }
+    return os;
+}

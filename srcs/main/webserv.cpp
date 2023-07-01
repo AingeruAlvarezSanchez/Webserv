@@ -1,9 +1,8 @@
 #include <iostream>
 #include <cstring>
 #include "webserv.h"
-#include "../classes/server_conf.hpp" //TODO
 
-int check_arguments(int argc, const std::string &file) { //TODO file
+int check_arguments(int argc, const std::string &file) { //TODO newf for checking file
     if (argc < 2) {
         errno = EINVAL;
         return -1;
@@ -14,13 +13,26 @@ int check_arguments(int argc, const std::string &file) { //TODO file
     return 0;
 }
 
+#include "../classes/socket_manager.hpp" //TODO
+void start(std::vector<ServerConf> &serverConf) {
+    SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
+
+    /*//////////////////////TODO//////////////////////////
+    for (auto it = socketMan.sockBegin(); it != socketMan.sockEnd(); it++) {
+        std::cout << "fd is: " << it->first << " and port is: " << it->second.server().ipv4Addr.sin_port << "\n";
+    }
+    //////////////////////TODO//////////////////////////*/
+
+    socketMan.listenOnSock(socketMan.sockBegin());
+}
+
 int main(int argc, char **argv) {
     if (check_arguments(argc, argv[1]) == -1) {
         std::cerr << "Webserv: " << strerror(errno) << "\n";
         return 1;
     }
 
-    ServerConf serverConf;
+    std::vector<ServerConf> serverConf;
     try {
         std::string content = config_file_content(argv[1]);
         if (config_file_parser(content, serverConf) == -1) {
@@ -32,17 +44,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    //////////////////////TODO///////////////////////////
-    /*for (auto it : serverConf) {
-        std::cout << "Port: " << it.server().port << "\n";
-        std::cout << "Host: " << it.server().ipv4Host.s_addr << "\n";
-        std::cout << "names: ";
-        for (auto it2 : it.server().servNames) {
-            std::cout << it2 << "\n";
-        }
-    }*/
-    //////////////////////TODO//////////////////////////
-    //start();
+    //TODO testing
+    for (auto it : serverConf) {
+        std::cout << it;
+    }
+    //TODO testing
+    start(serverConf);
 
     return 0;
 }
