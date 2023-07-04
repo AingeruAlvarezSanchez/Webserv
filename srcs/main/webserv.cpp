@@ -17,13 +17,12 @@ int check_arguments(int argc, const std::string &file) { //TODO newf for checkin
 void start(std::vector<ServerConf> &serverConf) {
     SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
 
-    /*//////////////////////TODO//////////////////////////
-    for (auto it = socketMan.sockBegin(); it != socketMan.sockEnd(); it++) {
-        std::cout << "fd is: " << it->first << " and port is: " << it->second.server().ipv4Addr.sin_port << "\n";
+    std::vector<int> res = socketMan.listenOnSock(socketMan.sockBegin(), socketMan.sockEnd());
+    //TODO
+    for (auto it : res) {
+        std::cout << "fd: " << it << "\n";
     }
-    //////////////////////TODO//////////////////////////*/
-
-    socketMan.listenOnSock(socketMan.sockBegin());
+    //TODO
 }
 
 int main(int argc, char **argv) {
@@ -36,7 +35,7 @@ int main(int argc, char **argv) {
     try {
         std::string content = config_file_content(argv[1]);
         if (config_file_parser(content, serverConf) == -1) {
-            std::cerr << "Webserv: Bad syntax\n"; //TODO
+            std::cerr << "Webserv: Bad syntax\n"; //TODO better messages?
             return 1;
         }
     } catch (const std::exception &e) {

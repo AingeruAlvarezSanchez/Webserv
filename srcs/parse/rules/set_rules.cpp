@@ -38,7 +38,7 @@ int  server_name_set(ServerConf &serverConf, const std::string &value, const std
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
-        if (line.find('\t') != std::string::npos) { //TODO tabs?
+        if (line.find('\t') != std::string::npos) {
             return -1;
         }
         if (!line.empty()) {
@@ -59,7 +59,7 @@ int  error_page_set(ServerConf &serverConf, const std::string &value, const std:
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
-        if (line.find('\t') != std::string::npos) { //TODO tabs?
+        if (line.find('\t') != std::string::npos) {
             return -1;
         }
         if (!line.empty()) {
@@ -131,7 +131,7 @@ int  index_set(ServerConf &serverConf, const std::string &value, const std::stri
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
-        if (line.find('\t') != std::string::npos) { //TODO tabs?
+        if (line.find('\t') != std::string::npos) {
             return -1;
         }
         if (!line.empty()) {
@@ -145,7 +145,7 @@ int  cgi_pass_set(ServerConf &serverConf, const std::string &value, const std::s
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
-        if (line.find('\t') != std::string::npos) { //TODO tabs?
+        if (line.find('\t') != std::string::npos) {
             return -1;
         }
         if (!line.empty()) {

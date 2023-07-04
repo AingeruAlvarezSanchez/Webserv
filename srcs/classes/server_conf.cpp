@@ -347,9 +347,10 @@ std::ostream    &operator<<(std::ostream &os, const ServerConf &serv) {
             it != serv.server().servNames.end(); it++)
     os << " -> " << *it << "\n";
     os << "Error redirections:\n";
-    for (auto it : serv.server().defErrorPage) {
-        os << " -> " << it.first << "\n";
-        for (ServerConf::StrVector::const_iterator it2 = it.second.begin(); it2 != it.second.end(); it2++) {
+    for (std::map<ServerConf::ushort_t, std::vector<std::string> >::const_iterator it = serv.server().defErrorPage.begin();
+        it != serv.server().defErrorPage.end(); it++) {
+        os << " -> " << it->first << "\n";
+        for (ServerConf::StrVector::const_iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             os << "     * " << *it2 << "\n";
         }
     }
@@ -373,9 +374,10 @@ std::ostream    &operator<<(std::ostream &os, const ServerConf &serv) {
             os << "     * " << *it2 << "\n";
         }
         os << " -> Redirections:\n";
-        for (auto it2: it->lo_redirs) {
-            os << "     * " << it2.first << "\n";
-            for (ServerConf::StrVector::const_iterator it3 = it2.second.begin(); it3 != it2.second.end(); it3++) {
+        for (std::map<ServerConf::ushort_t, std::vector<std::string> >::const_iterator it2 = it->lo_redirs.begin();
+            it2 != it->lo_redirs.end(); it2++) {
+            os << "     * " << it2->first << "\n";
+            for (ServerConf::StrVector::const_iterator it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
                 os << "         - " << *it3 << "\n";
             }
         }

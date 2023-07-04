@@ -26,11 +26,12 @@ public:
 
     //Socket map modifiers
     SockIter    addSocket(const ServerConf &server, int domain, int type);
-    SockIter    swapSockConf(int sockFd, const ServerConf &conf, int domain, int type);
+    SockIter    swapSockConf(int sockFd, const ServerConf &conf);
 
     //Socket operation functions
-    int listenOnSock(SockIter it);
     std::vector<int> listenOnSock();
+    int listenOnSock(SockIter it);
+    std::vector<int> listenOnSock(SockIter first, SockIter last);
 
     //Destructor
     ~SocketManager();
