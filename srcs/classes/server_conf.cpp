@@ -58,8 +58,8 @@ void ServerConf::setPort(uint_t port) {
     if (port > 65535) {
         throw   std::out_of_range("Invalid port");
     }
-    serverBlock_.ipv4Addr.sin_port = port;
-    serverBlock_.ipv6Addr.sin6_port = port;
+    serverBlock_.ipv4Addr.sin_port = htons(port);
+    serverBlock_.ipv6Addr.sin6_port = htonl(port);
 }
 
 void ServerConf::setHost(const std::string &host, ushort_t domain) {
@@ -334,11 +334,11 @@ ServerConf::~ServerConf() {}
 std::ostream    &operator<<(std::ostream &os, const ServerConf &serv) {
     os << "Port: ";
     if (serv.server().ipv4Addr.sin_addr.s_addr != UINT_MAX) {
-        os << serv.server().ipv4Addr.sin_port << "\n";
+        os << ntohs(serv.server().ipv4Addr.sin_port) << "\n";
         os << "Host: ";
         os << inet_ntoa(serv.server().ipv4Addr.sin_addr) << "\n";
     } else {
-        os << serv.server().ipv6Addr.sin6_port << "\n";
+        os << serv.server().ipv6Addr.sin6_port << "\n"; //TODO use ntohs
         os << "Host: ";
         //TODO host, inet_ntop
     }

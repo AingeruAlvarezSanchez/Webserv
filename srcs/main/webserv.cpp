@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include "webserv.h"
+#include "server.hpp"
 
 int check_arguments(int argc, const std::string &file) { //TODO newf for checking file
     if (argc < 2) {
@@ -13,21 +14,8 @@ int check_arguments(int argc, const std::string &file) { //TODO newf for checkin
     return 0;
 }
 
-#include "../classes/socket_manager.hpp" //TODO
-void start(std::vector<ServerConf> &serverConf) {
-    SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
-
-    std::vector<int> res = socketMan.listenOnSock(socketMan.sockBegin(), socketMan.sockEnd());
-
-    //TODO
-    for (auto it : res) {
-        std::cout << "fd: " << it << "\n";
-    }
-    //TODO
-}
-
 int main(int argc, char **argv) {
-    if (check_arguments(argc, argv[1]) == -1) {
+    if (!argv[1] || check_arguments(argc, argv[1]) == -1) {
         std::cerr << "Webserv: " << strerror(errno) << "\n";
         return 1;
     }
@@ -49,7 +37,9 @@ int main(int argc, char **argv) {
         std::cout << it;
     }
     //TODO testing
-    start(serverConf);
+    SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
+    Server server;
+    server.start(socketMan);
 
     return 0;
 }

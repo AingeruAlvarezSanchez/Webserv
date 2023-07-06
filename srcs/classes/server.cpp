@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include <fcntl.h>
 
 std::string cut(const std::string& cadena, const std::string& separador) 
 {
@@ -28,6 +29,8 @@ void Server::printMap(KeyValueMap &keyValuePairs)
 		std::cout << std::endl;
 	}
 }
+
+Server::Server() {}
 
 Server::Server(int port) : port(port), serverSocket(0)
 {
@@ -89,26 +92,15 @@ std::string Server::loadStatic(void)
 	return content;
 }
 
-void Server::start() 
+void Server::start(SocketManager &serverSockets)
 {
-	serverSocket = createServerSocket();
-	bindServerSocket(serverSocket, port);
-	
-	if (listen(serverSocket, 1) < 0) 
-	{
-		std::cerr << "Error al escuchar en el socket" << std::endl;
-		close(serverSocket);
-		exit(1);
-	}
-	
-	std::cout << "Servidor a la escucha en el puerto " << port << "..." << std::endl;
-	
-	while (true) 
+    serverSockets.sockBegin()->second.setHost("0.0.0.0", AF_INET);
+    int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
+	while (true)
     {
 		int clientSocket = acceptClientConnection(serverSocket);
 		handleClientRequest(clientSocket);
 	}
-	
 	close(serverSocket);
 }
 

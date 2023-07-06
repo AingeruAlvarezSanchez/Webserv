@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include <cctype>
+#include "socket_manager.hpp"
 
 class Server {
 
@@ -23,7 +24,7 @@ public:
     explicit Server(int port);
     Server();
     ~Server();
-    void start();
+    void start(SocketManager &serverSockets);
 
 private:
 	
