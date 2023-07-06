@@ -95,33 +95,41 @@ std::string Server::loadStatic(void)
 void Server::start(SocketManager &serverSockets)
 {
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
+//	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+	fd_set readfds;
 	
-	fd_set readfds, writefds;
 	FD_ZERO(&readfds);
-	FD_ZERO(&writefds);
 	FD_SET(serverSocket, &readfds);
-	struct timeval timeout;
+	
+	int biggest = serverSocket;
+	std::vector<int> clientSocket;
 	while (true)
     {
-		std::cout << "BUCLE\n";
-		int clientSocket = acceptClientConnection(serverSocket);
-		timeout.tv_sec = 3;
-		timeout.tv_usec = 0;
-		
-		std::cout << "BUCLE2\n";
-		int result = select(serverSocket + 1, &readfds, &writefds, NULL, &timeout);
-		std::cout << "BUCLESELECT\n";
+		int result = select(biggest + 1, &readfds, NULL, NULL, NULL);
 		if(FD_ISSET(serverSocket, &readfds))
 		{
-			std::cout << "serverSET\n";
-            clientSocket = acceptClientConnection(serverSocket);
-            FD_SET(clientSocket, &readfds);
-        }
-        if(FD_ISSET(clientSocket, &readfds)) {
-			std::cout << "clientSET\n";
-			handleClientRequest(clientSocket, &readfds, &writefds);
+			int newClient = acceptClientConnection(serverSocket);
+			if(newClient != -1)
+			{
+				clientSocket.push_back(newClient);
+				FD_SET(clientSocket.back(), &readfds);
+				if (clientSocket.back() > biggest) {
+					biggest = clientSocket.back();
+					//TODO
+				}
+			}
+
+		}
+		for (std::vector<int>::iterator it = clientSocket.begin(); it != clientSocket.end(); it++) {
+			if(FD_ISSET(*it, &readfds))
+			{
+				handleClientRequest(*it);
+				clientSocket.erase(it);
+				break ;
+			}
 		}
 	}
+	
 	close(serverSocket);
 }
 
@@ -157,9 +165,14 @@ int Server::acceptClientConnection(int serverSocket)
 	int clientSocket = accept(serverSocket, nullptr, nullptr);
 	if (clientSocket < 0) 
 	{
-		std::cerr << "Error al aceptar la conexión" << std::endl;
-		close(serverSocket);
-		exit(1);
+		if(errno == EWOULDBLOCK || errno == EAGAIN)
+			return(-1);
+		else
+		{
+			std::cerr << "Error al aceptar la conexión" << std::endl;
+			close(serverSocket);
+			exit(1);
+		}
 	}
 	return clientSocket;
 }
@@ -225,7 +238,7 @@ void Server::sendResponse(int clientSocket, const std::string& response)
 	}
 }
 
-void Server::handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writefds) 
+void Server::handleClientRequest(int clientSocket) 
 {
 	std::string data;
 	char c;
@@ -258,17 +271,18 @@ void Server::handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writ
 			break;
         }
 	}
-//	std::cout << data << std::endl;
+	std::cout << data << std::endl;
 	std::string requestMethod = cut(data, " ");
 	KeyValueMap keyValuePairs;
 	parseRequest(data, keyValuePairs);
-	printValueForKey("Content-Type", keyValuePairs);
-	extractFilename("Content-Disposition", keyValuePairs);
-	printMap(keyValuePairs);
-	FD_CLR(clientSocket, readfds);
-	FD_SET(clientSocket, writefds);
-	if(FD_ISSET(clientSocket, writefds))
-	{
+//	printValueForKey("Content-Type", keyValuePairs);
+//	extractFilename("Content-Disposition", keyValuePairs);
+//	printMap(keyValuePairs);
+	
+	
+	std::cout << "REQUEST METHOD: " << requestMethod << std::endl;
+	
+	
 		if(requestMethod == "GET")
 		{
 			handleGetRequest(clientSocket, data);
@@ -285,9 +299,8 @@ void Server::handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writ
 		{
 			std::cerr << "Metodo de solicitud no valido." << std::endl;
 		}
-		FD_CLR(clientSocket, writefds);
-		FD_SET(clientSocket, readfds);
-	}
+		
+	
 		close(clientSocket);
 		this->fileName.clear();
 }

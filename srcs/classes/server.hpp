@@ -38,7 +38,7 @@ private:
     std::string 	extractBoundary(const std::string& data);
     bool 			saveFileContent(const std::string& data, const std::string& boundary);
     void 			sendResponse(int clientSocket, const std::string &response);
-    void 			handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writefds);
+    void 			handleClientRequest(int clientSocket);
 	void 			extractValues(const std::string &key, const KeyValueMap &keyValuePairs, std::string& value);
 	void 			extractFilename(const std::string& key, const KeyValueMap &keyValuePairs);
 	void 			printValueForKey(const std::string& key, const KeyValueMap &keyValuePairs);
