@@ -18,6 +18,7 @@ void start(std::vector<ServerConf> &serverConf) {
     SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
 
     std::vector<int> res = socketMan.listenOnSock(socketMan.sockBegin(), socketMan.sockEnd());
+
     //TODO
     for (auto it : res) {
         std::cout << "fd: " << it << "\n";
