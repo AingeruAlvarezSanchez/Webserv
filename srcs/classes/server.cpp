@@ -94,12 +94,33 @@ std::string Server::loadStatic(void)
 
 void Server::start(SocketManager &serverSockets)
 {
-    serverSockets.sockBegin()->second.setHost("0.0.0.0", AF_INET);
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
+	
+	fd_set readfds, writefds;
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_SET(serverSocket, &readfds);
+	struct timeval timeout;
 	while (true)
     {
+		std::cout << "BUCLE\n";
 		int clientSocket = acceptClientConnection(serverSocket);
-		handleClientRequest(clientSocket);
+		timeout.tv_sec = 3;
+		timeout.tv_usec = 0;
+		
+		std::cout << "BUCLE2\n";
+		int result = select(serverSocket + 1, &readfds, &writefds, NULL, &timeout);
+		std::cout << "BUCLESELECT\n";
+		if(FD_ISSET(serverSocket, &readfds))
+		{
+			std::cout << "serverSET\n";
+            clientSocket = acceptClientConnection(serverSocket);
+            FD_SET(clientSocket, &readfds);
+        }
+        if(FD_ISSET(clientSocket, &readfds)) {
+			std::cout << "clientSET\n";
+			handleClientRequest(clientSocket, &readfds, &writefds);
+		}
 	}
 	close(serverSocket);
 }
@@ -204,7 +225,7 @@ void Server::sendResponse(int clientSocket, const std::string& response)
 	}
 }
 
-void Server::handleClientRequest(int clientSocket) 
+void Server::handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writefds) 
 {
 	std::string data;
 	char c;
@@ -244,27 +265,31 @@ void Server::handleClientRequest(int clientSocket)
 	printValueForKey("Content-Type", keyValuePairs);
 	extractFilename("Content-Disposition", keyValuePairs);
 	printMap(keyValuePairs);
-	
-	if(requestMethod == "GET")
-    {
-	    handleGetRequest(clientSocket, data);
-    }
-    else if(requestMethod == "POST")
-    {
-	    handlePostRequest(clientSocket, data);
-    }
-	else if(requestMethod == "DELETE")
+	FD_CLR(clientSocket, readfds);
+	FD_SET(clientSocket, writefds);
+	if(FD_ISSET(clientSocket, writefds))
 	{
+		if(requestMethod == "GET")
+		{
+			handleGetRequest(clientSocket, data);
+		}
+		else if(requestMethod == "POST")
+		{
+			handlePostRequest(clientSocket, data);
+		}
+		else if(requestMethod == "DELETE")
+		{
 		handleDeleteRequest(clientSocket, data);
+		}
+		else
+		{
+			std::cerr << "Metodo de solicitud no valido." << std::endl;
+		}
+		FD_CLR(clientSocket, writefds);
+		FD_SET(clientSocket, readfds);
 	}
-	
-	else
-	{
-	    std::cerr << "Metodo de solicitud no valido." << std::endl;
-    }
-
-	close(clientSocket);
-	this->fileName.clear();
+		close(clientSocket);
+		this->fileName.clear();
 }
 
 

@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include <cctype>
+#include <fcntl.h>
 #include "socket_manager.hpp"
 
 class Server {
@@ -37,7 +38,7 @@ private:
     std::string 	extractBoundary(const std::string& data);
     bool 			saveFileContent(const std::string& data, const std::string& boundary);
     void 			sendResponse(int clientSocket, const std::string &response);
-    void 			handleClientRequest(int clientSocket);
+    void 			handleClientRequest(int clientSocket, fd_set *readfds, fd_set *writefds);
 	void 			extractValues(const std::string &key, const KeyValueMap &keyValuePairs, std::string& value);
 	void 			extractFilename(const std::string& key, const KeyValueMap &keyValuePairs);
 	void 			printValueForKey(const std::string& key, const KeyValueMap &keyValuePairs);

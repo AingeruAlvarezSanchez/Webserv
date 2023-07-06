@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
         std::cout << it;
     }
     //TODO testing
-    SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
+    SocketManager socketMan(serverConf[0], AF_INET, SOCK_STREAM);
+    //SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
     Server server;
     server.start(socketMan);
 
