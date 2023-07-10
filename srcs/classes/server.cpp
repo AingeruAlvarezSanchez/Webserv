@@ -95,17 +95,31 @@ std::string Server::loadStatic(void)
 void Server::start(SocketManager &serverSockets)
 {
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
-//	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
 	fd_set readfds;
+	fd_set writefds;
 	
-	FD_ZERO(&readfds);
-	FD_SET(serverSocket, &readfds);
+//	FD_ZERO(&readfds);
+//	FD_ZERO(&writefds);
+//	FD_SET(serverSocket, &readfds);
 	
 	int biggest = serverSocket;
+	
 	std::vector<int> clientSocket;
+	int result = 0;
 	while (true)
     {
-		int result = select(biggest + 1, &readfds, NULL, NULL, NULL);
+	    FD_ZERO(&readfds);
+	    FD_ZERO(&writefds);
+	    FD_SET(serverSocket, &readfds);
+	    struct timeval timeout;
+		while (result == 0)
+		{
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
+			
+			result = select(biggest + 1, &readfds, &writefds, NULL, NULL);
+		}
 		if(FD_ISSET(serverSocket, &readfds))
 		{
 			int newClient = acceptClientConnection(serverSocket);
@@ -120,14 +134,38 @@ void Server::start(SocketManager &serverSockets)
 			}
 
 		}
-		for (std::vector<int>::iterator it = clientSocket.begin(); it != clientSocket.end(); it++) {
+		for (std::vector<int>::iterator it = clientSocket.begin(); it != clientSocket.end(); it) {
 			if(FD_ISSET(*it, &readfds))
 			{
+				
 				handleClientRequest(*it);
-				clientSocket.erase(it);
-				break ;
+				FD_CLR(*it, &readfds);
+				FD_SET(*it, &writefds);
+
+				it = clientSocket.erase(it);
+				
 			}
 		}
+
+
+		for (std::vector<Pair>::iterator it = this->clientResponses.begin(); it != this->clientResponses.end();it) 
+		{
+			if(FD_ISSET(it->first, &writefds))
+			{
+			
+				std::cout << "JELOU ESTOY AQUI\n";
+				int fd = it->first;
+				std::string re = it->second;
+				sendResponse(fd, re);
+				std::cout << "JELOU AGAIN\n";
+				close(fd);
+				it = this->clientResponses.erase(it);
+				FD_CLR(it->first, &writefds);
+			}
+				
+			
+		}
+
 	}
 	
 	close(serverSocket);
@@ -315,7 +353,7 @@ void Server::crossRoads(int clientSocket)
 		}
 		
 	
-		close(clientSocket);
+//		close(clientSocket);
 		
 }
 
@@ -335,7 +373,8 @@ void    Server::handleDeleteRequest(int clientSocket)
 					   "Content-Type: text/html\r\n"
 					   "Content-Length: " + std::to_string(staticContent.length()) + "\r\n"
 					   "\r\n" + staticContent;
-	sendResponse(clientSocket, resp);
+	this->clientResponses.push_back(std::make_pair(clientSocket, resp));
+//	sendResponse(clientSocket, resp);
 }
 
 void  Server::handleGetRequest(int clientSocket) 
@@ -373,7 +412,10 @@ void  Server::handleGetRequest(int clientSocket)
                    "\r\n" + staticContent;
 	}
 	
-	sendResponse(clientSocket, response);
+	this->clientResponses.push_back(std::make_pair(clientSocket, response));
+
+//	sendResponse(clientSocket, response);
+
 }
 
 void Server::handlePostRequest(int clientSocket) 
@@ -392,7 +434,8 @@ void Server::handlePostRequest(int clientSocket)
                            "Content-Length: " + std::to_string(staticContent.length()) + "\r\n"
                            "\r\n" + staticContent;
 	
-	sendResponse(clientSocket, response);
+	this->clientResponses.push_back(std::make_pair(clientSocket, response));
+//	sendResponse(clientSocket, response);
 }
 
 

@@ -20,6 +20,7 @@ class Server {
 typedef std::map<std::string, std::list<std::string> > KeyValueMap;
 typedef KeyValueMap::const_iterator MapIterator;
 typedef std::list<std::string>::const_iterator ListIterator;
+typedef std::pair<int, std::string> Pair;
 
 public:
     explicit Server(int port);
@@ -33,12 +34,13 @@ private:
     std::string fileName;
 	std::string data;
 	KeyValueMap keyValuePairs;
+	std::vector<Pair> clientResponses;
     int 			createServerSocket();
     void 			bindServerSocket(int serverSocket, int port);
     int 			acceptClientConnection(int serverSocket);
     std::string 	extractBoundary(void);
     bool 			saveFileContent(const std::string& boundary);
-    void 			sendResponse(int clientSocket, const std::string &response);
+	void 			sendResponse(int clientSocket, const std::string &response);
     void 			handleClientRequest(int clientSocket);
 	void 			extractValues(const std::string &key, std::string& value);
 	void 			extractFilename(void);
