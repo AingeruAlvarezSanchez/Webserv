@@ -11,12 +11,12 @@ std::string cut(const std::string& cadena, const std::string& separador)
     return cadena;
 }
 
-void Server::printMap(KeyValueMap &keyValuePairs)
+void Server::printMap(void)
 {
 	MapIterator it;
 	ListIterator listIt;
 	
-	for (it = keyValuePairs.begin(); it != keyValuePairs.end(); ++it) 
+	for (it = this->keyValuePairs.begin(); it != this->keyValuePairs.end(); ++it) 
 	{
 		std::cout << "Clave: " << it->first << std::endl;
 		std::cout << "Valores:" << std::endl;
@@ -41,26 +41,26 @@ Server::~Server()
 }
 
 
-std::string Server::getDeletedFilename(const std::string &requestData)
+std::string Server::getDeletedFilename(void)
 {
 	std::string filename;
-	std::size_t startPos = requestData.find("DELETE /") + 8;
-	std::size_t endPos = requestData.find(" HTTP/1.1\r\n");
+	std::size_t startPos = this->data.find("DELETE /") + 8;
+	std::size_t endPos = this->data.find(" HTTP/1.1\r\n");
 	if (endPos != std::string::npos)
 	{
-		filename = requestData.substr(startPos, endPos - startPos);
+		filename = this->data.substr(startPos, endPos - startPos);
 	}
 	return filename;
 }
 
-std::string Server::getRequestedFilename(const std::string& requestData) 
+std::string Server::getRequestedFilename(void) 
 {
 	std::string filename;
-	std::size_t startPos = requestData.find("GET /") + 5;
-	std::size_t endPos = requestData.find(" HTTP/1.1\r\n");
+	std::size_t startPos = this->data.find("GET /") + 5;
+	std::size_t endPos = this->data.find(" HTTP/1.1\r\n");
 	if (endPos != std::string::npos) 
 	{
-		filename = requestData.substr(startPos, endPos - startPos);
+		filename = this->data.substr(startPos, endPos - startPos);
 	}
 	return filename;
 }
@@ -178,37 +178,37 @@ int Server::acceptClientConnection(int serverSocket)
 }
 
 
-std::string Server::extractBoundary(const std::string& data) 
+std::string Server::extractBoundary(void) 
 {
 	std::string boundary;
-	std::size_t boundaryPos = data.find("boundary=");
+	std::size_t boundaryPos = this->data.find("boundary=");
 	if (boundaryPos != std::string::npos) 
 	{
 		std::size_t startPos = boundaryPos + 9;
-		std::size_t endPos = data.find("\r\n", startPos);
+		std::size_t endPos = this->data.find("\r\n", startPos);
 		if (endPos != std::string::npos) 
 		{
-			boundary = data.substr(startPos, endPos - startPos);
+			boundary = this->data.substr(startPos, endPos - startPos);
 		}
 	}
 	return boundary;
 }
 
-bool Server::saveFileContent(const std::string& data, const std::string& boundary) 
+bool Server::saveFileContent(const std::string& boundary) 
 {
 	std::string fileBoundaryStart = "--" + boundary + "\r\n";
 	std::string fileBoundaryEnd = "--" + boundary + "--";
-	std::size_t fileStartPos = data.find(fileBoundaryStart);
-	std::size_t fileEndPos = data.find(fileBoundaryEnd, fileStartPos);
+	std::size_t fileStartPos = this->data.find(fileBoundaryStart);
+	std::size_t fileEndPos = this->data.find(fileBoundaryEnd, fileStartPos);
 	
 	if (fileStartPos != std::string::npos && fileEndPos != std::string::npos) 
 	{
 		std::string fileContent;
-		std::size_t fileContentStartPos = data.find("\r\n\r\n", fileStartPos);
+		std::size_t fileContentStartPos = this->data.find("\r\n\r\n", fileStartPos);
 		if (fileContentStartPos != std::string::npos) 
 		{
 			fileContentStartPos += 4;
-			fileContent = data.substr(fileContentStartPos, fileEndPos - fileContentStartPos - 2);
+			fileContent = this->data.substr(fileContentStartPos, fileEndPos - fileContentStartPos - 2);
 			
 			std::ofstream outputFile(this->fileName);
 			outputFile << fileContent;
@@ -240,7 +240,7 @@ void Server::sendResponse(int clientSocket, const std::string& response)
 
 void Server::handleClientRequest(int clientSocket) 
 {
-	std::string data;
+
 	char c;
 	ssize_t bytesRead;
 	int contentLength = 0;
@@ -250,34 +250,48 @@ void Server::handleClientRequest(int clientSocket)
 	
 	while ((bytesRead = recv(clientSocket, &c, 1, 0)) > 0) 
 	{
-		data.push_back(c);
+		this->data.push_back(c);
 		if (!foundEndOfHeaders) 
 		{
-			if (data.find(endOfHeaders) != std::string::npos) 
+			if (this->data.find(endOfHeaders) != std::string::npos)
 			{
 				foundEndOfHeaders = true;
-				std::size_t contentLengthPos = data.find(contentLengthHeader);
+				std::size_t contentLengthPos = this->data.find(contentLengthHeader);
 				if (contentLengthPos != std::string::npos) 
 				{
 					contentLengthPos += contentLengthHeader.length();
-					std::string contentLengthStr = cut(data.substr(contentLengthPos), "\r\n");
+					std::string contentLengthStr = cut(this->data.substr(contentLengthPos), "\r\n");
 					contentLength = std::stoi(contentLengthStr);
 				}
 			}
 		}
 		
-		if (foundEndOfHeaders && data.length() - data.find(endOfHeaders) - endOfHeaders.length() >= contentLength) 
+		if (foundEndOfHeaders && this->data.length() - this->data.find(endOfHeaders) - endOfHeaders.length() >= contentLength) 
 		{
 			break;
         }
 	}
-	std::cout << data << std::endl;
-	std::string requestMethod = cut(data, " ");
-	KeyValueMap keyValuePairs;
-	parseRequest(data, keyValuePairs);
-//	printValueForKey("Content-Type", keyValuePairs);
-//	extractFilename("Content-Disposition", keyValuePairs);
-//	printMap(keyValuePairs);
+	std::cout << this->data << std::endl;
+	
+	
+	parseRequest();
+	printValueForKey("Content-Type");
+	extractFilename();
+	printMap();
+	crossRoads(clientSocket);
+	clearAll();
+}
+
+void Server::clearAll(void)
+{
+	this->fileName.clear();
+	this->data.clear();
+	this->keyValuePairs.clear();
+}
+
+void Server::crossRoads(int clientSocket)
+{
+	std::string requestMethod = cut(this->data, " ");
 	
 	
 	std::cout << "REQUEST METHOD: " << requestMethod << std::endl;
@@ -285,15 +299,15 @@ void Server::handleClientRequest(int clientSocket)
 	
 		if(requestMethod == "GET")
 		{
-			handleGetRequest(clientSocket, data);
+			handleGetRequest(clientSocket);
 		}
 		else if(requestMethod == "POST")
 		{
-			handlePostRequest(clientSocket, data);
+			handlePostRequest(clientSocket);
 		}
 		else if(requestMethod == "DELETE")
 		{
-		handleDeleteRequest(clientSocket, data);
+		handleDeleteRequest(clientSocket);
 		}
 		else
 		{
@@ -302,14 +316,14 @@ void Server::handleClientRequest(int clientSocket)
 		
 	
 		close(clientSocket);
-		this->fileName.clear();
+		
 }
 
 
-void    Server::handleDeleteRequest(int clientSocket, const std::string &requestData)
+void    Server::handleDeleteRequest(int clientSocket)
 {
 	std::cout << "----SOLICITUD DELETE-----\n";
-	std::string deleted = getDeletedFilename(requestData);
+	std::string deleted = getDeletedFilename();
 	std::cout << "Deleted es: " << deleted << std::endl;
 	if(remove(deleted.c_str()) != 0)
 		std::cout << "El archivo no pudo ser eliminado\n";
@@ -324,10 +338,10 @@ void    Server::handleDeleteRequest(int clientSocket, const std::string &request
 	sendResponse(clientSocket, resp);
 }
 
-void  Server::handleGetRequest(int clientSocket, const std::string& requestData) 
+void  Server::handleGetRequest(int clientSocket) 
 {
     std::string response;
-    std::string fileName = getRequestedFilename(requestData);
+    std::string fileName = getRequestedFilename();
 	std::cout << "Getted Filename es: " << fileName << std::endl;
 
     if (fileName != "index.html" && fileName != " /" && !fileName.empty()) 
@@ -362,14 +376,14 @@ void  Server::handleGetRequest(int clientSocket, const std::string& requestData)
 	sendResponse(clientSocket, response);
 }
 
-void Server::handlePostRequest(int clientSocket, const std::string& requestData) 
+void Server::handlePostRequest(int clientSocket) 
 {
-	std::string boundary = extractBoundary(requestData);
+	std::string boundary = extractBoundary();
 	std::cout << "Valor de boundary: " << boundary << std::endl;
 	
 	if (!boundary.empty()) 
 	{
-		saveFileContent(requestData, boundary);
+		saveFileContent(boundary);
 	}
 	
 	std::string staticContent = loadStatic();
@@ -382,10 +396,10 @@ void Server::handlePostRequest(int clientSocket, const std::string& requestData)
 }
 
 
-void Server::extractValues(const std::string &key, const KeyValueMap &keyValuePairs, std::string& value) 
+void Server::extractValues(const std::string &key, std::string& value) 
 {
-	MapIterator it = keyValuePairs.find(key);
-	if (it != keyValuePairs.end()) 
+	MapIterator it = this->keyValuePairs.find(key);
+	if (it != this->keyValuePairs.end()) 
 	{
 		const std::list<std::string>& values = it->second;
 		if (!values.empty()) 
@@ -405,10 +419,11 @@ void Server::extractValues(const std::string &key, const KeyValueMap &keyValuePa
 	}
 }
 
-void Server::extractFilename(const std::string& key, const KeyValueMap &keyValuePairs) 
+void Server::extractFilename(void) 
 {
-	MapIterator it = keyValuePairs.find(key);
-	if (it != keyValuePairs.end()) 
+	std::string key = "Content-Disposition";
+	MapIterator it = this->keyValuePairs.find(key);
+	if (it != this->keyValuePairs.end()) 
 	{
 		const std::list<std::string>& values = it->second;
 		std::string filenamePrefix = "filename=\"";
@@ -445,10 +460,10 @@ void Server::extractFilename(const std::string& key, const KeyValueMap &keyValue
     }
 }
 
-void Server::printValueForKey(const std::string& key, const KeyValueMap &keyValuePairs) 
+void Server::printValueForKey(const std::string& key) 
 {
-	MapIterator it = keyValuePairs.find(key);
-	if (it != keyValuePairs.end()) 
+	MapIterator it = this->keyValuePairs.find(key);
+	if (it != this->keyValuePairs.end()) 
 	{
 		const std::list<std::string>& values = it->second;
 		std::cout << key << ": ";
@@ -479,9 +494,9 @@ bool Server::isASCII(const std::string& str)
 }
 
 
-void Server::parseRequest(const std::string &request, KeyValueMap &keyValuePairs)
+void Server::parseRequest(void)
 {
-    std::istringstream iss(request);
+    std::istringstream iss(this->data);
     std::string line;
 	
 	while (std::getline(iss, line)) 
@@ -501,7 +516,7 @@ void Server::parseRequest(const std::string &request, KeyValueMap &keyValuePairs
             key.erase(key.find_last_not_of(' ') + 1);
             value.erase(0, value.find_first_not_of(' '));
             value.erase(value.find_last_not_of(' ') + 1);
-            keyValuePairs[key].push_back(value);
+            this->keyValuePairs[key].push_back(value);
         }
     }
 }
