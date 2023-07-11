@@ -92,6 +92,8 @@ std::string Server::loadStatic(void)
 	return content;
 }
 
+
+
 void Server::start(SocketManager &serverSockets)
 {
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
@@ -99,9 +101,9 @@ void Server::start(SocketManager &serverSockets)
 	fd_set readfds;
 	fd_set writefds;
 	
-//	FD_ZERO(&readfds);
-//	FD_ZERO(&writefds);
-//	FD_SET(serverSocket, &readfds);
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_SET(serverSocket, &readfds);
 	
 	int biggest = serverSocket;
 	
@@ -109,9 +111,7 @@ void Server::start(SocketManager &serverSockets)
 	int result = 0;
 	while (true)
     {
-	    FD_ZERO(&readfds);
-	    FD_ZERO(&writefds);
-	    FD_SET(serverSocket, &readfds);
+	   
 	    struct timeval timeout;
 		while (result == 0)
 		{
@@ -125,6 +125,8 @@ void Server::start(SocketManager &serverSockets)
 			int newClient = acceptClientConnection(serverSocket);
 			if(newClient != -1)
 			{
+//				fcntl(newClient, F_SETFL, O_NONBLOCK);
+
 				clientSocket.push_back(newClient);
 				FD_SET(clientSocket.back(), &readfds);
 				if (clientSocket.back() > biggest) {
@@ -143,6 +145,7 @@ void Server::start(SocketManager &serverSockets)
 				FD_SET(*it, &writefds);
 
 				it = clientSocket.erase(it);
+				break;
 				
 			}
 		}
@@ -161,7 +164,10 @@ void Server::start(SocketManager &serverSockets)
 				close(fd);
 				it = this->clientResponses.erase(it);
 				FD_CLR(it->first, &writefds);
+				break;
 			}
+			else
+				++it;
 				
 			
 		}
@@ -170,6 +176,123 @@ void Server::start(SocketManager &serverSockets)
 	
 	close(serverSocket);
 }
+/*
+void Server::start(SocketManager &serverSockets)
+{
+    int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
+    fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+    fd_set readfds;
+    fd_set writefds;
+
+    int biggest = serverSocket;
+
+    std::vector<int> clientSocket;
+    int result = 0;
+    int requestCount = 0;
+    int childProcessCount = 0;
+
+    while (true)
+    {
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+        FD_SET(serverSocket, &readfds);
+        struct timeval timeout;
+        while (result == 0)
+        {
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
+
+            result = select(biggest + 1, &readfds, &writefds, NULL, NULL);
+        }
+        if (FD_ISSET(serverSocket, &readfds))
+        {
+            int newClient = acceptClientConnection(serverSocket);
+            if (newClient != -1)
+            {
+                clientSocket.push_back(newClient);
+                FD_SET(clientSocket.back(), &readfds);
+                if (clientSocket.back() > biggest)
+                {
+                    biggest = clientSocket.back();
+                }
+
+                // Increment the request count
+                requestCount++;
+
+                // Check if we reached the limit for the current process
+                if (requestCount == 16000)
+                {
+                    // Fork a new process
+                    pid_t pid = fork();
+                    if (pid < 0)
+                    {
+                        // Forking failed, handle the error
+                        perror("Fork failed");
+                        exit(1);
+                    }
+                    else if (pid == 0)
+                    {
+                        // Child process
+                        // Reset the request count and close unnecessary sockets
+                        requestCount = 0;
+                        close(serverSocket);
+                        for (int socket : clientSocket)
+                        {
+                            close(socket);
+                        }
+                        clientSocket.clear();
+
+                        // Break out of the loop to start processing requests in the child process
+                        break;
+                    }
+                    else
+                    {
+                        // Parent process
+                        // Close unnecessary sockets and clear the client socket vector
+                        close(newClient);
+                        clientSocket.clear();
+                        childProcessCount++;
+
+                        // Check if we reached the limit for the parent process
+                        if (childProcessCount == 16000)
+                        {
+                            // Wait for the child process to finish
+                            wait(NULL);
+                            childProcessCount = 0;
+                        }
+                    }
+                }
+            }
+        }
+        for (std::vector<int>::iterator it = clientSocket.begin(); it != clientSocket.end();)
+        {
+            if (FD_ISSET(*it, &readfds))
+            {
+                handleClientRequest(*it);
+                FD_CLR(*it, &readfds);
+                FD_SET(*it, &writefds);
+
+                it = clientSocket.erase(it);
+            }
+        }
+
+        for (std::vector<Pair>::iterator it = this->clientResponses.begin(); it != this->clientResponses.end();)
+        {
+            if (FD_ISSET(it->first, &writefds))
+            {
+                int fd = it->first;
+                std::string re = it->second;
+                sendResponse(fd, re);
+                close(fd);
+                it = this->clientResponses.erase(it);
+                FD_CLR(it->first, &writefds);
+            }
+        }
+    }
+
+    close(serverSocket);
+}*/
+
 
 int Server::createServerSocket() 
 {
@@ -279,16 +402,18 @@ void Server::sendResponse(int clientSocket, const std::string& response)
 void Server::handleClientRequest(int clientSocket) 
 {
 
-	char c;
+//	char c;
+	char buffer[RECV_SIZE];
 	ssize_t bytesRead;
 	int contentLength = 0;
 	bool foundEndOfHeaders = false;
 	std::string endOfHeaders = "\r\n\r\n";
 	std::string contentLengthHeader = "Content-Length: ";
 	
-	while ((bytesRead = recv(clientSocket, &c, 1, 0)) > 0) 
+//	while ((bytesRead = recv(clientSocket, &c, 1, 0)) > 0) 
+	while ((bytesRead = recv(clientSocket, buffer, RECV_SIZE - 1, 0)) > 0)
 	{
-		this->data.push_back(c);
+		this->data.append(buffer, bytesRead);
 		if (!foundEndOfHeaders) 
 		{
 			if (this->data.find(endOfHeaders) != std::string::npos)
@@ -307,7 +432,7 @@ void Server::handleClientRequest(int clientSocket)
 		if (foundEndOfHeaders && this->data.length() - this->data.find(endOfHeaders) - endOfHeaders.length() >= contentLength) 
 		{
 			break;
-        }
+		}
 	}
 	std::cout << this->data << std::endl;
 	

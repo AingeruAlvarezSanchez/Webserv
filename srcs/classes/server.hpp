@@ -13,7 +13,10 @@
 #include <sstream>
 #include <cctype>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "socket_manager.hpp"
+#define RECV_SIZE 65536
 
 class Server {
 
@@ -34,6 +37,7 @@ private:
     std::string fileName;
 	std::string data;
 	KeyValueMap keyValuePairs;
+	std::vector<Pair> clientData;
 	std::vector<Pair> clientResponses;
     int 			createServerSocket();
     void 			bindServerSocket(int serverSocket, int port);
