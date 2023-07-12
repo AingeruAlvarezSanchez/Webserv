@@ -1,5 +1,8 @@
 #include "server.hpp"
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
 
 std::string cut(const std::string& cadena, const std::string& separador) 
 {
@@ -91,11 +94,11 @@ std::string Server::loadStatic(void)
 	inputFile.close();
 	return content;
 }
-
+/*
 void Server::start(SocketManager &serverSockets)
 {
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
-//	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
 	fd_set readfds;
 	fd_set writefds;
 	
@@ -126,7 +129,7 @@ void Server::start(SocketManager &serverSockets)
 			
 			if(newClient != -1)
 			{
-//				fcntl(newClient, F_SETFL, O_NONBLOCK);
+///				fcntl(newClient, F_SETFL, O_NONBLOCK);
 				clientSocket.push_back(newClient);
 				FD_SET(clientSocket.back(), &readfds);
 				if (clientSocket.back() > biggest) {
@@ -171,7 +174,100 @@ void Server::start(SocketManager &serverSockets)
 	}
 	
 	close(serverSocket);
+}*/
+void Server::start(SocketManager& serverSockets)
+{
+    int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
+    fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+    fd_set readfds;
+    fd_set writefds;
+
+    int biggest = serverSocket;
+
+    std::vector<int> clientSocket;
+    int result = 0;
+    while (true)
+    {
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+        FD_SET(serverSocket, &readfds);
+
+        for (const auto& client : clientSocket)
+        {
+            FD_SET(client, &readfds);
+        }
+
+        struct timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        result = select(biggest + 1, &readfds, &writefds, NULL, &timeout);
+
+        if (result < 0)
+        {
+            // Error en select
+            std::cerr << "Error en select" << std::endl;
+            break;
+        }
+        else if (result == 0)
+        {
+            // No hay actividad en los descriptores de archivo
+            continue;
+        }
+
+        if (FD_ISSET(serverSocket, &readfds))
+        {
+            int newClient = acceptClientConnection(serverSocket);
+            if (newClient != -1)
+            {
+				fcntl(newClient, F_SETFL, O_NONBLOCK);
+                clientSocket.push_back(newClient);
+                if (newClient > biggest)
+                {
+                    biggest = newClient;
+                }
+            }
+        }
+
+        for (auto it = clientSocket.begin(); it != clientSocket.end();)
+        {
+            if (FD_ISSET(*it, &readfds))
+            {
+                handleClientRequest(*it);
+                FD_CLR(*it, &readfds);
+                FD_SET(*it, &writefds);
+
+                it = clientSocket.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        for (auto it = this->clientResponses.begin(); it != this->clientResponses.end();)
+        {
+            if (FD_ISSET(it->first, &writefds))
+            {
+                int fd = it->first;
+                std::string re = it->second;
+                sendResponse(fd, re);
+                close(fd);
+                it = this->clientResponses.erase(it);
+                FD_CLR(fd, &writefds);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    close(serverSocket);
 }
+
+
+
 
 int Server::createServerSocket() 
 {
@@ -206,7 +302,11 @@ int Server::acceptClientConnection(int serverSocket)
 	if (clientSocket < 0) 
 	{
 		if(errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			std::cout << "mo pending connections\n";
 			return(-1);
+		}
+
 		else
 		{
 			std::cerr << "Error al aceptar la conexión" << std::endl;
