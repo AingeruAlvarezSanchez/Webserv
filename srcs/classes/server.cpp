@@ -95,7 +95,7 @@ std::string Server::loadStatic(void)
 void Server::start(SocketManager &serverSockets)
 {
     int serverSocket = serverSockets.listenOnSock(serverSockets.sockBegin());
-	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
+//	fcntl(serverSocket, F_SETFL, O_NONBLOCK);
 	fd_set readfds;
 	fd_set writefds;
 	
@@ -123,8 +123,10 @@ void Server::start(SocketManager &serverSockets)
 		if(FD_ISSET(serverSocket, &readfds))
 		{
 			int newClient = acceptClientConnection(serverSocket);
+			
 			if(newClient != -1)
 			{
+//				fcntl(newClient, F_SETFL, O_NONBLOCK);
 				clientSocket.push_back(newClient);
 				FD_SET(clientSocket.back(), &readfds);
 				if (clientSocket.back() > biggest) {
