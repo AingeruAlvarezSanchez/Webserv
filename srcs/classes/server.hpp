@@ -50,7 +50,7 @@ private:
 	bool 			isASCII(const std::string& str);
 	std::string		getRequestedFilename(void);
 	std::string		getDeletedFilename(void);
-	std::string		loadStaticContent(const std::string &filename);
+	std::pair<std::string, std::string>		loadStaticContent(const std::string &filename);
 	std::string		loadStatic(void);
 	void			handlePostRequest(int clientSocket);
 	void			handleGetRequest(int clientSocket);

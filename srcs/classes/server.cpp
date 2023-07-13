@@ -4,6 +4,17 @@
 #include <sys/event.h>
 #include <sys/time.h>
 
+std::string getFileExtension(const std::string& filename)
+{
+    size_t dotIndex = filename.find_last_of(".");
+    if (dotIndex != std::string::npos)
+    {
+        return filename.substr(dotIndex);
+    }
+    return "";
+}
+
+
 std::string cut(const std::string& cadena, const std::string& separador) 
 {
     std::size_t pos = cadena.find(separador);
@@ -68,6 +79,7 @@ std::string Server::getRequestedFilename(void)
 	return filename;
 }
 
+/*
 std::string Server::loadStaticContent(const std::string& filename) 
 {
 	std::ifstream inputFile(filename, std::ios::binary);
@@ -80,7 +92,35 @@ std::string Server::loadStaticContent(const std::string& filename)
 	std::string content((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
 	inputFile.close();
 	return content;
+}*/
+
+std::pair<std::string, std::string> Server::loadStaticContent(const std::string& filename)
+{
+    std::ifstream inputFile(filename, std::ios::binary);
+    if (!inputFile)
+    {
+        std::cerr << "Error al abrir el archivo: " << filename << std::endl;
+        return std::make_pair("", ""); // Archivo no válido, retorna un par vacío
+    }
+
+    std::string extension = getFileExtension(filename);
+    std::string contentType = "text/html"; // Tipo de contenido predeterminado para archivos HTML
+
+    if (extension == ".jpg" || extension == ".jpeg")
+    {
+        contentType = "image/jpeg";
+    }
+    else if (extension == ".png")
+    {
+        contentType = "image/png";
+    }
+    // Agrega más extensiones y tipos de contenido según tus necesidades
+
+    std::string content((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+    inputFile.close();
+    return std::make_pair(contentType, content);
 }
+
 
 std::string Server::loadStatic(void) 
 {
@@ -479,6 +519,7 @@ void    Server::handleDeleteRequest(int clientSocket)
 //	sendResponse(clientSocket, resp);
 }
 
+/*
 void  Server::handleGetRequest(int clientSocket) 
 {
     std::string response;
@@ -491,7 +532,7 @@ void  Server::handleGetRequest(int clientSocket)
 		if (!fileContent.empty()) 
 		{
 			response = "HTTP/1.1 200 OK\r\n"
-					   "Content-Type: image/jpeg\r\n"
+					   "Content-Type: text/html\r\n"
 					   "Content-Length: " + std::to_string(fileContent.length()) + "\r\n"
 					   "\r\n" + fileContent;
 		} 
@@ -518,7 +559,49 @@ void  Server::handleGetRequest(int clientSocket)
 
 //	sendResponse(clientSocket, response);
 
+}*/
+
+void Server::handleGetRequest(int clientSocket)
+{
+    std::string response;
+    std::string fileName = getRequestedFilename();
+    std::cout << "Getted Filename: " << fileName << std::endl;
+
+    if (fileName != "index.html" && fileName != "/" && !fileName.empty())
+    {
+        std::pair<std::string, std::string> content = loadStaticContent(fileName);
+        std::string contentType = content.first;
+        std::string fileContent = content.second;
+
+        if (!fileContent.empty())
+        {
+            response = "HTTP/1.1 200 OK\r\n"
+                       "Content-Type: " + contentType + "\r\n"
+                       "Content-Length: " + std::to_string(fileContent.length()) + "\r\n"
+                       "\r\n" + fileContent;
+        }
+        else
+        {
+            response = "HTTP/1.1 404 Not Found\r\n"
+                       "Content-Type: text/html\r\n"
+                       "Content-Length: 0\r\n"
+                       "\r\n";
+        }
+    }
+    else
+    {
+        std::string staticContent = loadStatic();
+        response = "HTTP/1.1 200 OK\r\n"
+                   "Content-Type: text/html\r\n"
+                   "Content-Length: " + std::to_string(staticContent.length()) + "\r\n"
+                   "\r\n" + staticContent;
+    }
+
+    this->clientResponses.push_back(std::make_pair(clientSocket, response));
+
+    // sendResponse(clientSocket, response);
 }
+
 
 void Server::handlePostRequest(int clientSocket) 
 {
