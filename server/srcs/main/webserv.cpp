@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include "webserv.h"
-//#include "server.hpp"
+#include "server.hpp"
 
 int check_arguments(int argc, const std::string &file) {
     if (argc < 2) {
@@ -32,15 +32,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    for (auto it : serverConf) {
+    for (const auto &it : serverConf) {
         std::cout << it;
     } //TODO erase this for loop, it displays the current server configuration
 
-    exit(1);
     SocketManager socketMan(serverConf.begin(), serverConf.end(), SOCK_STREAM);
-    //TODO IMPORTANT, CHECK FOR LOCATIONS INSIDE LOCATIONS BASED ON URL!!!!!!
-    /*Server server;
-    server.start(socketMan);*/
+    Server server;
+    server.start(socketMan);
 
     return 0;
 }
