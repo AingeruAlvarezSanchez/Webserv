@@ -5,6 +5,7 @@ std::string  fetch_block(const std::string &content, size_t start, size_t end) {
     return block;
 }
 
+#include <iostream>
 std::string get_path(const std::string &block) {
     std::string result;
 
@@ -19,6 +20,13 @@ std::string get_path(const std::string &block) {
 
     if (tmp.empty() || tmp.find_first_not_of(" \t") == std::string::npos) {
         result = line.substr(0, delim);
+    }
+
+    if (result.at(0) == '/') {
+        result.erase(0, 1);
+    }
+    if (result.at(result.length() - 1) != '/') {
+        result += '/';
     }
     return result;
 }

@@ -106,27 +106,75 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
     clearAll();
 }
 
+std::string Server::findDirFile(std::string &file, const ServerConf &conf) {
+    std::string response;
+    DIR *dir;
+    struct dirent *entry;
+
+	std::string location = file;
+	std::cout << "location: " << location << "\n";
+	exit(1);
+    ServerConf::LocationConstIterator it = conf.findLocation(file);
+
+    file.empty() ? dir = opendir(".") : dir = opendir(file.c_str());
+    while ((entry = readdir(dir))) {
+        std::string name = entry->d_name;
+        if (name == "." || name == "..") {
+            continue;
+        }
+
+        if (it != conf.locationConstEnd()) {
+            if (!it->indexes.empty()) {
+                std::vector<std::string>::const_iterator index = std::find(it->indexes.begin(),
+                                                                           it->indexes.end(), name);
+                if (index != it->indexes.end()) {
+                    response = getHTTPCode(conf, "200", file + *index);
+                    break ;
+                }
+            }
+        }
+    }
+    closedir(dir);
+
+    if (response.empty()) {
+        if (it != conf.locationConstEnd() && it->autoIndex) {
+            showAutoIndex(file, response);
+        } else {
+            response = getHTTPCode(conf, "404");
+        }
+    }
+    return response;
+}
+
 void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string response;
     std::string file = getRequestedFilename();
     std::string ext = getFileExt(file);
 
-    /*TODO First I need to check if the conf has a redirection, in which case
-     * I have to immediately redirect the client to the redirect URL, using the provided code in the conf.
-     * ----
-     * TODO Second I need to check here the gotten file
-     * 1. iterate through the requested URL with getline(is, line, '/') for getting a directory each loop
-     * 2. check if any of the getline directories has a matching ServerConf.
-     * 3. if it has, concatenate (if exists) the root directive of each configuration to the last directory of getline.
-     * 4. the result will be the place to search for any resource.
-     * ----
-     * */
+    file = searchFullRoot(file, conf);
 
     std::cout << "Gotten Filename: " << file << std::endl; //TODO Debug
     if (isValidHost(conf)) {
         std::pair<std::string, std::string> content = loadStaticContent(file);
         std::string contentType = content.first;
         std::string fileContent = content.second;
+
+        if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
+                            && ext != "php" && ext != "rb" && ext != "js")) {
+            if (isDirectory(file) || file.empty()) {
+                response = findDirFile(file, conf);
+            } else {
+                if (fileContent.empty()) {
+                    //response = findAltFile(file, conf);
+                } else {
+                    //response = getHTTPCode("200", file);
+                }
+            }
+        } else {
+            //TODO CGI here
+        }
+    } else {
+        response = getHTTPCode(conf, "404");
     }
     std::cout << "Response:\n" << response << "\n"; //TODO Debug
     this->clientResponses.push_back(std::make_pair(clientSocket, response));
@@ -232,7 +280,7 @@ void Server::crossRoads(int clientSocket, ServerConf &conf)
     }
     else
     {
-        std::string response = getHTTPCode("405");
+        std::string response = getHTTPCode(conf, "http/default_errors/405"); //TODO Change for looking for defErrors
         std::cout << "Response:\n" << response << "\n"; //TODO Debug
         this->clientResponses.push_back(std::make_pair(clientSocket, response));
     }
@@ -517,7 +565,7 @@ void Server::clearAll()
     this->keyValuePairs.clear();
 }
 
-std::string Server::getHTTPCode(const std::string &code, const std::string &file) {
+std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code, const std::string &file) {
     std::string response;
     if (code == "200") {
         std::pair<std::string, std::string> content = loadStaticContent(file);
@@ -534,7 +582,6 @@ std::string Server::getHTTPCode(const std::string &code, const std::string &file
         size_t start = fileContent.find("<title>") + 7;
         size_t end = fileContent.find("</title>");
         std::string title = fileContent.substr(start, end - start);
-
         response = "HTTP/1.1 " + title
                    + "\r\nContent-Type: " + contentType
                    + "\r\nContent-Length: " + std::to_string(fileContent.length())
@@ -682,6 +729,36 @@ std::string Server::getContentType(const std::string& extension) {
     }
 
     return "application/octet-stream";
+}
+
+std::string Server::searchFullRoot(const std::string &file, ServerConf &conf) {
+    std::string fullRoot;
+    std::istringstream is(file);
+    std::string line;
+
+    if (!conf.server().rootDir.empty()) {
+        fullRoot = conf.server().rootDir;
+    }
+
+    while (std::getline(is, line, '/')) {
+        if (line.empty()) {
+            continue;
+        }
+        ServerConf::LocationConstIterator it = conf.findLocation(line + '/');
+        if (it != conf.locationConstEnd()) {
+            if (!it->redirect.second.empty()) {
+                //TODO redirect here
+            }
+            if (!it->rootDir.empty()) {
+                fullRoot += it->rootDir;
+            }
+        }
+    }
+    if (fullRoot.empty()) {
+        fullRoot = file;
+    }
+
+    return fullRoot;
 }
 
 //Debug

@@ -52,7 +52,7 @@ private:
     static std::string              cut(const std::string& str, const std::string& separator);
     static bool                     isASCII(const std::string& str);
     void                            clearAll();
-    static std::string              getHTTPCode(const std::string &code, const std::string &file = std::string());
+    static std::string              getHTTPCode(const ServerConf &conf, const std::string &code, const std::string &file = std::string());
     static DoubleStrPair            loadStaticContent(const std::string& filename);
     static bool                     isDirectory(const std::string &fName);
     static std::string              getFileExtension(const std::string& filename);
@@ -60,6 +60,8 @@ private:
     bool                            isValidHost(const ServerConf &conf);
     bool                            isAllowedMethod(const ServerConf &conf, int method);
     std::string                     getContentType(const std::string& extension);
+    static std::string              searchFullRoot(const std::string &file, ServerConf &conf);
+	std::string						findDirFile(std::string &file, const ServerConf &conf);
 
     //Debug
     void    printValueForKey(const std::string& key);

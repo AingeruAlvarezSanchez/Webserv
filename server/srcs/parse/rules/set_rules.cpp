@@ -13,6 +13,19 @@ static std::string erase_value_delimiters(const std::string &content) {
     return value;
 }
 
+static std::string format_path(const std::string &path) {
+    std::string newPath = path;
+
+    if (newPath.at(0) == '/') {
+        newPath.erase(0, 1);
+    }
+    if (newPath.at(newPath.length() - 1) != '/') {
+        newPath += '/';
+    }
+
+    return newPath;
+}
+
 int  port_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
     std::string content = erase_value_delimiters(value);
     char *end;
@@ -101,22 +114,22 @@ int  limit_except_set(ServerConf &serverConf, const std::string &value, const st
         std::istringstream is(code, std::ios::in);
         while (std::getline(is, line, ' ')) {
             if (line == "GET") {
-                serverConf.flipPermissions(GET, path);
+                serverConf.flipPermissions(GET, format_path(path));
             } else if (line == "POST") {
-                serverConf.flipPermissions(POST, path);
+                serverConf.flipPermissions(POST, format_path(path));
             } else if (line == "DELETE") {
-                serverConf.flipPermissions(DELETE, path);
+                serverConf.flipPermissions(DELETE, format_path(path));
             }
         }
     } else if (value == "deny_all") {
         if (code.find("GET") == std::string::npos) {
-            serverConf.flipPermissions(GET, path);
+            serverConf.flipPermissions(GET, format_path(path));
         }
         if (code.find("POST") == std::string::npos) {
-            serverConf.flipPermissions(POST, path);
+            serverConf.flipPermissions(POST, format_path(path));
         }
         if (code.find("DELETE") == std::string::npos) {
-            serverConf.flipPermissions(DELETE, path);
+            serverConf.flipPermissions(DELETE, format_path(path));
         }
     }
     return 0;
@@ -130,7 +143,7 @@ int  return_set(ServerConf &serverConf, const std::string &value, const std::str
             return -1;
         }
         if (!line.empty()) {
-            serverConf.addLocationRedir(std::atoi(code.c_str()), value, path);
+            serverConf.addLocationRedir(std::atoi(code.c_str()), value, format_path(path));
         }
     }
     return 0;
@@ -138,14 +151,14 @@ int  return_set(ServerConf &serverConf, const std::string &value, const std::str
 
 int  root_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
     std::string content = erase_value_delimiters(value);
+    if (content.at(content.length() - 1) != '/') {
+        content += '/';
+    }
+
     if (path.empty()) {
         serverConf.setRootDir(content);
     } else {
-        if (!serverConf.server().rootDir.empty()) {
-            serverConf.setRootDir(serverConf.server().rootDir + content, path);
-        } else {
-            serverConf.setRootDir("server/" + content, path);
-        }
+        serverConf.setRootDir(content, format_path(path));
     }
     return 0;
 }
@@ -158,7 +171,7 @@ int  try_files_set(ServerConf &serverConf, const std::string &value, const std::
             return -1;
         }
         if (!line.empty()) {
-            serverConf.addLocationAltFile(std::atoi(code.c_str()), line, path);
+            serverConf.addLocationAltFile(std::atoi(code.c_str()), line, format_path(path));
         }
     }
     return 0;
@@ -170,12 +183,12 @@ int  auto_index_set(ServerConf &serverConf, const std::string &value, const std:
         if (content.find_first_not_of(" \t") != content.find("on")) {
             return -1;
         }
-        serverConf.setAutoIndex(true, path);
+        serverConf.setAutoIndex(true, format_path(path));
     } else if (content.find("off") != std::string::npos) {
         if (content.find_first_not_of(" \t") != content.find("off")) {
             return -1;
         }
-        serverConf.setAutoIndex(false, path);
+        serverConf.setAutoIndex(false, format_path(path));
     } else {
         return -1;
     }
@@ -190,7 +203,7 @@ int  index_set(ServerConf &serverConf, const std::string &value, const std::stri
             return -1;
         }
         if (!line.empty()) {
-            serverConf.addLocationIndex(line, path);
+            serverConf.addLocationIndex(line, format_path(path));
         }
     }
     return 0;
@@ -204,7 +217,7 @@ int  cgi_pass_set(ServerConf &serverConf, const std::string &value, const std::s
             return -1;
         }
         if (!line.empty()) {
-            serverConf.addLocationCgi(line, path);
+            serverConf.addLocationCgi(line, format_path(path));
         }
     }
     return 0;
@@ -218,9 +231,9 @@ int  upload_set(ServerConf &serverConf, const std::string &value, const std::str
             || content.substr(end, content.length()).find('#') != std::string::npos) {
             return -1;
         }
-        serverConf.setUploadDir(content.substr(0, end), path);
+        serverConf.setUploadDir(content.substr(0, end), format_path(path));
     } else {
-        serverConf.setUploadDir(content, path);
+        serverConf.setUploadDir(content, format_path(path));
     }
     return 0;
 }
