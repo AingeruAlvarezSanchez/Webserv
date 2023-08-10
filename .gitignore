@@ -31,8 +31,5 @@
 *.out
 *.app
 
-# Config files
-*.conf
-
 #InteliJ
 *.idea
