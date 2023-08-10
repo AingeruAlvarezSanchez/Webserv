@@ -13,10 +13,11 @@ static std::string erase_value_delimiters(const std::string &content) {
     return value;
 }
 
+#include <iostream>
 static std::string format_path(const std::string &path) {
     std::string newPath = path;
 
-    if (newPath.at(0) == '/') {
+    if (newPath.at(0) == '/' && newPath.length() > 1) {
         newPath.erase(0, 1);
     }
     if (newPath.at(newPath.length() - 1) != '/') {

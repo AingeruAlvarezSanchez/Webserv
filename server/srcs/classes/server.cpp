@@ -4,7 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <fcntl.h>
-#include <string.h>
+#include <cstring>
 #include <netdb.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -106,39 +106,42 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
     clearAll();
 }
 
-std::string Server::findDirFile(std::string &file, const ServerConf &conf) {
+std::string Server::findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf) {
     std::string response;
     DIR *dir;
     struct dirent *entry;
+    ServerConf::LocationConstIterator it = conf.findLocation(location);
 
-	std::string location = file;
-	std::cout << "location: " << location << "\n";
-	exit(1);
-    ServerConf::LocationConstIterator it = conf.findLocation(file);
+    std::cout << "root: >" << root << "<\n";
+    std::cout << "location: >" << location << "<\n";
+    std::cout << "Gotten Filename: >" << file << "<\n"; //TODO Debug
 
-    file.empty() ? dir = opendir(".") : dir = opendir(file.c_str());
-    while ((entry = readdir(dir))) {
-        std::string name = entry->d_name;
-        if (name == "." || name == "..") {
-            continue;
-        }
+    root.empty() ? dir = opendir(".") : dir = opendir(root.c_str());
+    if (dir != NULL) {
+        while ((entry = readdir(dir))) {
+            std::string name = entry->d_name;
+            if (name == "." || name == "..") {
+                continue;
+            }
+            std::cout << "entry: " << name << "\n";
 
-        if (it != conf.locationConstEnd()) {
-            if (!it->indexes.empty()) {
-                std::vector<std::string>::const_iterator index = std::find(it->indexes.begin(),
-                                                                           it->indexes.end(), name);
-                if (index != it->indexes.end()) {
-                    response = getHTTPCode(conf, "200", file + *index);
-                    break ;
+            if (it != conf.locationConstEnd()) {
+                if (!it->indexes.empty()) {
+                    std::vector<std::string>::const_iterator index = std::find(it->indexes.begin(),
+                                                                               it->indexes.end(), name);
+                    if (index != it->indexes.end()) {
+                        response = getHTTPCode(conf, "200", root + *index); //TODO test this chiet
+                        break ;
+                    }
                 }
             }
         }
+        closedir(dir);
     }
-    closedir(dir);
 
     if (response.empty()) {
         if (it != conf.locationConstEnd() && it->autoIndex) {
-            showAutoIndex(file, response);
+            showAutoIndex(root, response);
         } else {
             response = getHTTPCode(conf, "404");
         }
@@ -151,23 +154,23 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string file = getRequestedFilename();
     std::string ext = getFileExt(file);
 
-    file = searchFullRoot(file, conf);
+    std::string root;
+    root = searchFullRoot(file, conf);
+    std::string location = searchFileLocation(file);
 
-    std::cout << "Gotten Filename: " << file << std::endl; //TODO Debug
     if (isValidHost(conf)) {
-        std::pair<std::string, std::string> content = loadStaticContent(file);
-        std::string contentType = content.first;
+        std::pair<std::string, std::string> content = loadStaticContent(root);
         std::string fileContent = content.second;
 
         if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
                             && ext != "php" && ext != "rb" && ext != "js")) {
-            if (isDirectory(file) || file.empty()) {
-                response = findDirFile(file, conf);
+            if (isDirectory(root) || file.empty()) {
+                response = findDirFile(file, root, location, conf); //TODO check more
             } else {
                 if (fileContent.empty()) {
-                    //response = findAltFile(file, conf);
+                    //response = findAltFile(file, conf, location);
                 } else {
-                    //response = getHTTPCode("200", file);
+                    response = getHTTPCode(conf, "200", root);
                 }
             }
         } else {
@@ -176,7 +179,6 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     } else {
         response = getHTTPCode(conf, "404");
     }
-    std::cout << "Response:\n" << response << "\n"; //TODO Debug
     this->clientResponses.push_back(std::make_pair(clientSocket, response));
 }
 
@@ -213,6 +215,7 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
                     files.push_back(name);
                 }
             }
+            closedir(dir);
         }
 
         std::sort(directories.begin(), directories.end());
@@ -242,7 +245,6 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
             autoIndex += "</a></li>";
         }
 
-        closedir(dir);
         autoIndex += "</ul>";
         autoIndex += "</body></html>";
 
@@ -280,8 +282,7 @@ void Server::crossRoads(int clientSocket, ServerConf &conf)
     }
     else
     {
-        std::string response = getHTTPCode(conf, "http/default_errors/405"); //TODO Change for looking for defErrors
-        std::cout << "Response:\n" << response << "\n"; //TODO Debug
+        std::string response = getHTTPCode(conf, "405");
         this->clientResponses.push_back(std::make_pair(clientSocket, response));
     }
 }
@@ -567,6 +568,7 @@ void Server::clearAll()
 
 std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code, const std::string &file) {
     std::string response;
+    std::cout << "the file inside errors: " << file << "\n";
     if (code == "200") {
         std::pair<std::string, std::string> content = loadStaticContent(file);
         std::string contentType = content.first;
@@ -576,7 +578,27 @@ std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code,
                    + "\r\nContent-Length: " + std::to_string(fileContent.length())
                    + "\r\n\r\n" + fileContent;
     } else {
-        std::pair<std::string, std::string> content = loadStaticContent(code + ".html");
+        std::pair<std::string, std::string> content;
+        if (!conf.server().defErrorPage.empty()) {
+            for (ServerConf::UshortVecMap::const_iterator it = conf.server().defErrorPage.begin();
+                    it != conf.server().defErrorPage.end(); it++) {
+                std::cout << "code on iterator: " << it->first << "\n";
+                if (it->first == std::atoi(code.c_str())) {
+                    content = loadStaticContent(*it->second.begin());
+                    std::string contentType = content.first;
+                    std::string fileContent = content.second;
+                    size_t start = fileContent.find("<title>") + 7;
+                    size_t end = fileContent.find("</title>");
+                    std::string title = fileContent.substr(start, end - start);
+                    response = "HTTP/1.1 " + title
+                               + "\r\nContent-Type: " + contentType
+                               + "\r\nContent-Length: " + std::to_string(fileContent.length())
+                               + "\r\n\r\n" + fileContent;
+                    return response;
+                }
+            }
+        }
+        content = loadStaticContent("http/default_errors/" + code + ".html");
         std::string contentType = content.first;
         std::string fileContent = content.second;
         size_t start = fileContent.find("<title>") + 7;
@@ -733,32 +755,51 @@ std::string Server::getContentType(const std::string& extension) {
 
 std::string Server::searchFullRoot(const std::string &file, ServerConf &conf) {
     std::string fullRoot;
-    std::istringstream is(file);
-    std::string line;
 
     if (!conf.server().rootDir.empty()) {
         fullRoot = conf.server().rootDir;
     }
+    if (conf.findLocation("/") != conf.locationConstEnd()) {
+        fullRoot = conf.findLocation("/")->rootDir;
+    }
+    if (file.empty()) {
+        return "";
+    }
 
+    std::istringstream is(file);
+    std::string line;
     while (std::getline(is, line, '/')) {
-        if (line.empty()) {
-            continue;
-        }
         ServerConf::LocationConstIterator it = conf.findLocation(line + '/');
-        if (it != conf.locationConstEnd()) {
-            if (!it->redirect.second.empty()) {
-                //TODO redirect here
-            }
-            if (!it->rootDir.empty()) {
-                fullRoot += it->rootDir;
-            }
+        if (it != conf.locationConstEnd() && !it->rootDir.empty()) {
+            fullRoot += it->rootDir;
+        } else {
+            fullRoot += line + '/';
         }
-    }
-    if (fullRoot.empty()) {
-        fullRoot = file;
     }
 
+    if (file.at(file.length() - 1) != '/' && fullRoot.at(fullRoot.length() - 1) == '/') {
+        fullRoot.erase(fullRoot.length() - 1);
+        fullRoot.erase(fullRoot.find_last_of('/') + 1);
+        fullRoot += file.substr(file.find_last_of('/') + 1);
+    } else if (file.at(file.length() - 1) == '/' && fullRoot.at(fullRoot.length() - 1) != '/') {
+        fullRoot += '/';
+    }
     return fullRoot;
+}
+
+std::string Server::searchFileLocation(const std::string &file) {
+    std::string location = file;
+
+    if (!location.empty()) {
+        if (location.find_last_of('/') != std::string::npos) {
+            location.erase(location.find_last_of('/'));
+            location.erase(0, location.find_last_of('/') + 1);
+        } else {
+            location.erase(0, location.length());
+        }
+    }
+    location += '/';
+    return location;
 }
 
 //Debug

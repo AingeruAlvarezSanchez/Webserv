@@ -5,7 +5,6 @@ std::string  fetch_block(const std::string &content, size_t start, size_t end) {
     return block;
 }
 
-#include <iostream>
 std::string get_path(const std::string &block) {
     std::string result;
 
@@ -25,9 +24,12 @@ std::string get_path(const std::string &block) {
     if (result.at(0) == '/') {
         result.erase(0, 1);
     }
-    if (result.at(result.length() - 1) != '/') {
+    if (result.length() == 0) {
+        result += '/';
+    } else if (result.at(result.length() - 1) != '/') {
         result += '/';
     }
+
     return result;
 }
 

@@ -61,7 +61,8 @@ private:
     bool                            isAllowedMethod(const ServerConf &conf, int method);
     std::string                     getContentType(const std::string& extension);
     static std::string              searchFullRoot(const std::string &file, ServerConf &conf);
-	std::string						findDirFile(std::string &file, const ServerConf &conf);
+    std::string                     searchFileLocation(const std::string &file);
+	std::string						findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf);
 
     //Debug
     void    printValueForKey(const std::string& key);

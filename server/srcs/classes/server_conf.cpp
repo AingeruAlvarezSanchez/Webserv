@@ -137,6 +137,7 @@ ServerConf::LocationIterator ServerConf::setLocationPath(const std::string &name
         LocationBlock newBlock = {};
         newBlock.path = name;
         newBlock.uploadDir = name;
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -171,6 +172,7 @@ ServerConf::LocationIterator ServerConf::addLocationRedir(uint_t code, const std
         newBlock.path = dst;
         newBlock.uploadDir = dst;
         newBlock.redirect = std::make_pair(code, path);
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -187,6 +189,7 @@ ServerConf::LocationIterator ServerConf::addLocationAltFile(ServerConf::uint_t c
         newBlock.uploadDir = dst;
         newBlock.try_files.first = code;
         newBlock.try_files.second.push_back(path);
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -212,6 +215,7 @@ ServerConf::LocationIterator ServerConf::setRootDir(const std::string &name, con
         newBlock.path = dst;
         newBlock.uploadDir = dst;
         newBlock.rootDir = name;
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -227,6 +231,7 @@ ServerConf::LocationIterator ServerConf::setAutoIndex(bool value, const std::str
         newBlock.path = dst;
         newBlock.uploadDir = dst;
         newBlock.autoIndex = value;
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -242,6 +247,7 @@ ServerConf::LocationIterator ServerConf::addLocationIndex(const std::string &ind
         newBlock.path = dst;
         newBlock.uploadDir = dst;
         newBlock.indexes.push_back(index);
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -259,6 +265,7 @@ ServerConf::LocationIterator ServerConf::addLocationCgi(const std::string &cgi, 
         newBlock.path = dst;
         newBlock.uploadDir = dst;
         newBlock.cgiLangs.push_back(cgi);
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
@@ -275,6 +282,7 @@ ServerConf::LocationIterator ServerConf::setUploadDir(const std::string &path, c
         LocationBlock newBlock = {};
         newBlock.path = dst;
         newBlock.uploadDir = path;
+        newBlock.allowGet = true;
         addLocation(newBlock);
         return --locationEnd();
     }
