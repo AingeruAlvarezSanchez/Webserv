@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Our Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 1em 0;
+        }
+        h1 {
+            color: #ff6600;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        p {
+            color: #666;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .slider {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .slider img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+</head>
+<body>
+<header>
+    <h1>Welcome to Our Gallery</h1>
+    <p>Discover stunning photos and moments captured with passion.</p>
+</header>
+<div class="container">
+    <div class="slider">
+        <div><img src="photos/perro.jpg" alt="Image 1"></div>
+        <div><img src="photos/alubias.jpg" alt="Image 2"></div>
+        <div><img src="photos/ninja.jpg" alt="Image 3"></div>
+    </div>
+    <h2>Gallery Features</h2>
+    <p>Our gallery showcases a wide range of captivating photos from various genres. Explore and immerse yourself in visual stories that inspire.</p>
+    <a href="/blog/photos/gallery" class="button">Explore Gallery</a>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+<script>
+    $('.slider').slick({
+        autoplay: true,
+        autoplaySpeed: 5000,
+        dots: true,
+        arrows: false,
+    });
+</script>
+</body>
+</html>

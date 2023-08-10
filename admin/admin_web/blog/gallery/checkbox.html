@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkbox Anidado en JavaScript</title>
+</head>
+<body>
+<ul id="listaTareas">
+    <li>
+        <input type="checkbox" id="tarea1">
+        <label for="tarea1">Tarea 1</label>
+        <ul>
+            <!-- Capa 1 -->
+            <li>
+                <input type="checkbox" id="subtarea1">
+                <label for="subtarea1">Subtarea 1</label>
+                <ul>
+                    <!-- Capa 2 -->
+                    <li>
+                        <input type="checkbox" id="subsubtarea1">
+                        <label for="subsubtarea1">Subsubtarea 1</label>
+                        <ul>
+                            <!-- Capa 3 -->
+                            <li>
+                                <input type="checkbox" id="subsubsubtarea1">
+                                <label for="subsubsubtarea1">Subsubsubtarea 1</label>
+                                <ul>
+                                    <!-- Capa 4 -->
+                                    <li>
+                                        <input type="checkbox" id="subsubsubsubtarea1">
+                                        <label for="subsubsubsubtarea1">Subsubsubsubtarea 1</label>
+                                        <ul>
+                                            <!-- Capa 5 -->
+                                            <li>
+                                                <input type="checkbox" id="subsubsubsubsubtarea1">
+                                                <label for="subsubsubsubsubtarea1">Subsubsubsubsubtarea 1</label>
+                                                <ul>
+                                                    <!-- Capa 6 -->
+                                                    <li>
+                                                        <input type="checkbox" id="subsubsubsubsubsubtarea1">
+                                                        <label for="subsubsubsubsubsubtarea1">Subsubsubsubsubsubtarea 1</label>
+                                                        <ul>
+                                                            <!-- Capa 7 -->
+                                                            <li>
+                                                                <input type="checkbox" id="subsubsubsubsubsubsubtarea1">
+                                                                <label for="subsubsubsubsubsubsubtarea1">Subsubsubsubsubsubsubtarea 1</label>
+                                                                <ul>
+                                                                    <!-- Capa 8 -->
+                                                                    <li>
+                                                                        <input type="checkbox" id="subsubsubsubsubsubsubsubtarea1">
+                                                                        <label for="subsubsubsubsubsubsubsubtarea1">Subsubsubsubsubsubsubsubtarea 1</label>
+                                                                        <ul>
+                                                                            <!-- Capa 9 -->
+                                                                            <li>
+                                                                                <input type="checkbox" id="subsubsubsubsubsubsubsubsubtarea1">
+                                                                                <label for="subsubsubsubsubsubsubsubsubtarea1">Subsubsubsubsubsubsubsubsubtarea 1</label>
+                                                                                <ul>
+                                                                                    <!-- Capa 10 -->
+                                                                                    <li>
+                                                                                        <input type="checkbox" id="subsubsubsubsubsubsubsubsubsubtarea1">
+                                                                                        <label for="subsubsubsubsubsubsubsubsubsubtarea1">Subsubsubsubsubsubsubsubsubsubtarea 1</label>
+                                                                                    </li>
+                                                                                    <li>
+                                                                                        <input type="checkbox" id="subsubsubsubsubsubsubsubsubsubtarea2">
+                                                                                        <label for="subsubsubsubsubsubsubsubsubsubtarea2">Subsubsubsubsubsubsubsubsubsubtarea 2</label>
+                                                                                    </li>
+                                                                                </ul>
+                                                                            </li>
+                                                                        </ul>
+                                                                    </li>
+                                                                </ul>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="subsubtarea2">
+                        <label for="subsubtarea2">Subsubtarea 2</label>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <input type="checkbox" id="subtarea2">
+                <label for="subtarea2">Subtarea 2</label>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <input type="checkbox" id="tarea2">
+        <label for="tarea2">Tarea 2</label>
+    </li>
+</ul>
+<script>
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const subCheckboxes = this.parentNode.querySelectorAll('input[type="checkbox"]');
+            subCheckboxes.forEach(subCheckbox => {
+                subCheckbox.checked = isChecked;
+            });
+        });
+    });
+</script>
+</body>
+</html>
