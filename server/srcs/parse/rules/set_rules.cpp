@@ -13,7 +13,6 @@ static std::string erase_value_delimiters(const std::string &content) {
     return value;
 }
 
-#include <iostream>
 static std::string format_path(const std::string &path) {
     std::string newPath = path;
 

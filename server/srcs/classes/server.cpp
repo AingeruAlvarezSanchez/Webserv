@@ -149,6 +149,7 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
     return response;
 }
 
+#include <iostream>
 void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string response;
     std::string file = getRequestedFilename();
@@ -158,6 +159,9 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     root = searchFullRoot(file, conf);
     std::string location = searchFileLocation(file);
 
+    std::cout << "root: " << root << "\n";
+    std::cout << "file: " << file << "\n";
+    std::cout << "loca: " << location << "\n";
     if (isValidHost(conf)) {
         std::pair<std::string, std::string> content = loadStaticContent(root);
         std::string fileContent = content.second;
@@ -759,11 +763,11 @@ std::string Server::searchFullRoot(const std::string &file, ServerConf &conf) {
     if (!conf.server().rootDir.empty()) {
         fullRoot = conf.server().rootDir;
     }
-    if (conf.findLocation("/") != conf.locationConstEnd()) {
+    if (conf.findLocation("/") != conf.locationConstEnd() && !conf.findLocation("/")->rootDir.empty()) {
         fullRoot = conf.findLocation("/")->rootDir;
     }
     if (file.empty()) {
-        return "";
+        return fullRoot;
     }
 
     std::istringstream is(file);
