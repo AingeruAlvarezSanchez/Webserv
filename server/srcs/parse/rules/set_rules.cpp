@@ -108,6 +108,7 @@ int  max_body_set(ServerConf &serverConf, const std::string &value, const std::s
     return -1;
 }
 
+#include <iostream>
 int  limit_except_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
     if (value == "allow_all") {
         std::string line;
@@ -122,7 +123,7 @@ int  limit_except_set(ServerConf &serverConf, const std::string &value, const st
             }
         }
     } else if (value == "deny_all") {
-        if (code.find("GET") == std::string::npos) {
+        if (code.find("GET") == std::string::npos || serverConf.findLocation(path)->allowGet) {
             serverConf.flipPermissions(GET, format_path(path));
         }
         if (code.find("POST") == std::string::npos) {

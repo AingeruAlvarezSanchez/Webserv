@@ -150,6 +150,53 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
 }
 
 #include <iostream>
+std::string Server::findAltFile(std::string &file, const ServerConf &conf, const std::string &location) {
+    std::string response;
+    std::string dirName;
+    if (file.find_last_of('/') == std::string::npos) {
+        dirName = '.';
+    } else {
+        dirName = file.substr(0, file.find_last_of('/') + 1);
+    }
+
+    ServerConf::LocationConstIterator it = conf.findLocation(dirName);
+    if (it != conf.locationConstEnd() && !it->try_files.second.empty()) {
+        DIR *dir;
+        struct dirent *entry;
+
+        dir = opendir(dirName.c_str());
+        if (dir != NULL) {
+            while ((entry = readdir(dir))) {
+                std::string name = entry->d_name;
+                if (name == "." || name == "..") {
+                    continue;
+                }
+
+                std::vector<std::string>::const_iterator altFile = std::find(it->try_files.second.begin(),
+                                                                             it->try_files.second.end(), name);
+                if (altFile != it->try_files.second.end()) {
+                    response = getHTTPCode(conf, "200", dirName + *altFile);
+                    break;
+                }
+            }
+
+            if (response.empty()) {
+                std::ostringstream code;
+                code << it->try_files.first;
+                response = getHTTPCode(conf, code.str());
+            }
+            closedir(dir);
+        }
+    } else {
+        if (!it->allowGet) {
+            response = getHTTPCode(conf, "403");
+        } else {
+            response = getHTTPCode(conf, "404"); //TODO for some reason if I deny_all with GET, GET stays at true
+        }
+    }
+    return response;
+}
+
 void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string response;
     std::string file = getRequestedFilename();
@@ -172,7 +219,7 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
                 response = findDirFile(file, root, location, conf); //TODO check more
             } else {
                 if (fileContent.empty()) {
-                    //response = findAltFile(file, conf, location);
+                    response = findAltFile(file, conf, location);
                 } else {
                     response = getHTTPCode(conf, "200", root);
                 }
