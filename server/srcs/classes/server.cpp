@@ -188,10 +188,10 @@ std::string Server::findAltFile(std::string &file, const ServerConf &conf, const
             closedir(dir);
         }
     } else {
-        if (!it->allowGet) {
-            response = getHTTPCode(conf, "403");
+        if (it != conf.locationConstEnd() && !it->allowGet) {
+            response = getHTTPCode(conf, "405");
         } else {
-            response = getHTTPCode(conf, "404"); //TODO for some reason if I deny_all with GET, GET stays at true
+            response = getHTTPCode(conf, "404");
         }
     }
     return response;
