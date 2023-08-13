@@ -112,10 +112,6 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
     struct dirent *entry;
     ServerConf::LocationConstIterator it = conf.findLocation(location);
 
-    std::cout << "root: >" << root << "<\n";
-    std::cout << "location: >" << location << "<\n";
-    std::cout << "Gotten Filename: >" << file << "<\n"; //TODO Debug
-
     root.empty() ? dir = opendir(".") : dir = opendir(root.c_str());
     if (dir != NULL) {
         while ((entry = readdir(dir))) {
@@ -123,7 +119,6 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
             if (name == "." || name == "..") {
                 continue;
             }
-            std::cout << "entry: " << name << "\n";
 
             if (it != conf.locationConstEnd()) {
                 if (!it->indexes.empty()) {
@@ -208,27 +203,36 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
 
     std::cout << "root: " << root << "\n";
     std::cout << "file: " << file << "\n";
-    std::cout << "loca: " << location << "\n";
     if (isValidHost(conf)) {
+        ServerConf::LocationConstIterator it = conf.findLocation(location);
         std::pair<std::string, std::string> content = loadStaticContent(root);
         std::string fileContent = content.second;
 
-        if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
+        if (it != conf.locationConstEnd() && it->redirect.first) {
+            std::ostringstream code;
+            code << it->redirect.first;
+            response = getHTTPCode(conf, code.str(), it->redirect.second);
+        } else if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
                             && ext != "php" && ext != "rb" && ext != "js")) {
             if (isDirectory(root) || file.empty()) {
                 response = findDirFile(file, root, location, conf); //TODO check more
             } else {
                 if (fileContent.empty()) {
-                    response = findAltFile(file, conf, location);
+                    response = findAltFile(file, conf, location); //TODO check more
                 } else {
                     response = getHTTPCode(conf, "200", root);
                 }
             }
         } else {
-            //TODO CGI here
+            if (it != conf.locationConstEnd() && std::find(it->cgiLangs.begin(), it->cgiLangs.end(), ext) != it->cgiLangs.end()) {
+                    std::cout << "allowed cgi\n";
+                    //response = executeCGI();
+            } else {
+                response = getHTTPCode(conf, "403");
+            }
         }
     } else {
-        response = getHTTPCode(conf, "404");
+        response = getHTTPCode(conf, "404"); //TODO if we use response = "" would it give a more accurate response?
     }
     this->clientResponses.push_back(std::make_pair(clientSocket, response));
 }
@@ -620,7 +624,15 @@ void Server::clearAll()
 std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code, const std::string &file) {
     std::string response;
     std::cout << "the file inside errors: " << file << "\n";
-    if (code == "200") {
+    if (code == "301" || code == "302") {
+        response = "HTTP/1.1 " + code;
+        if (code == "301") {
+            response += " Moved Permanently\r\n";
+        } else {
+            response += " Moved Temporarily\r\n";
+        }
+        response += "Location: " + file + "\r\n\r\n";
+    } else if (code == "200") {
         std::pair<std::string, std::string> content = loadStaticContent(file);
         std::string contentType = content.first;
         std::string fileContent = content.second;
