@@ -29,16 +29,17 @@ private:
     std::vector<Pair>   clientResponses;
 
     //Client socket handling
-    int     acceptClientConnection(int serverSocket);
-    void    setSockets(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket);
-    void    checkIncoming(fd_set &readfds, SocketManager &serverSockets, std::vector<int> &clientSocket, int &biggest);
-    void    checkClientRequest(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket);
-    void    handleClientRequest(int clientSocket, ServerConf &conf);
-    void    handleResponses(fd_set &writefds);
-    void    sendResponse(int clientSocket, const std::string& response);
-    void    crossRoads(int clientSocket, ServerConf &conf);
-    void    handleGetRequest(int clientSocket, ServerConf &conf);
-    void    showAutoIndex(std::string &fileName, std::string &response);
+    int         acceptClientConnection(int serverSocket);
+    void        setSockets(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket);
+    void        checkIncoming(fd_set &readfds, SocketManager &serverSockets, std::vector<int> &clientSocket, int &biggest);
+    void        checkClientRequest(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket);
+    void        handleClientRequest(int clientSocket, ServerConf &conf);
+    void        handleResponses(fd_set &writefds);
+    void        sendResponse(int clientSocket, const std::string& response);
+    void        crossRoads(int clientSocket, ServerConf &conf);
+    void        handleGetRequest(int clientSocket, ServerConf &conf);
+    void        showAutoIndex(std::string &fileName, std::string &response);
+    std::string executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request);
 
     //Parsing
     void        parseRequest();
@@ -64,6 +65,7 @@ private:
     std::string                     searchFileLocation(const std::string &file);
 	std::string						findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf);
     std::string                     findAltFile(std::string &file, const ServerConf &conf, const std::string &location);
+    std::string                     getInterpreterPath(const std::string &ext);
 
     //Debug
     void    printValueForKey(const std::string& key);

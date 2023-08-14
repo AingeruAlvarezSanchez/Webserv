@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 
 Server::Server() {}
 
@@ -144,7 +145,6 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
     return response;
 }
 
-#include <iostream>
 std::string Server::findAltFile(std::string &file, const ServerConf &conf, const std::string &location) {
     std::string response;
     std::string dirName;
@@ -192,6 +192,67 @@ std::string Server::findAltFile(std::string &file, const ServerConf &conf, const
     return response;
 }
 
+std::string Server::executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request) {
+    std::string response;
+    int pipefd[2];
+    if (pipe(pipefd) == -1) {
+        std::cerr << "Fatal error on pipe: could not execute CGI\n";
+        return getHTTPCode(conf, "500");
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        std::cerr << "Fatal error on fork: could not execute CGI\n";
+        return getHTTPCode(conf, "500");
+    } else if (!pid) {
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+        std::string interpreterPath = getInterpreterPath(ext);
+        char **env = {};
+        char **args = {};
+
+        if (request == POST) {
+            //args = (char **)malloc(sizeof(char *) * argumentos); //TODO config
+            //args += arguments //TODO configurate
+            //env = getCGIenv();
+        } else {
+            args = (char **)malloc(sizeof(char *) * 3);
+            args[2] = NULL;
+        }
+        args[0] = interpreterPath.substr(interpreterPath.find_last_of('/') + 1).data();
+        args[1] = executable.data();
+
+        execve(interpreterPath.data(), args, env);
+        std::cerr << "Error: " << executable.substr(executable.find_last_of('/') + 1)
+                  << ": could not execute CGI.\n";
+        write(1, "error", sizeof("error"));
+        exit(1);
+    } else {
+        int status;
+        char buffer[1024];
+        ssize_t bytesRead = 0;
+
+        close(pipefd[1]);
+        while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+            buffer[bytesRead] = '\0';
+            response.append(buffer);
+        }
+        close(pipefd[0]);
+        waitpid(pid, &status, 0);
+    }
+
+    if (response == "error") {
+        response = getHTTPCode(conf, "500");
+    } else {
+        response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "
+                    + std::to_string(response.length())
+                    + "\r\n\r\n" + response;
+    }
+    std::cout << "response from the CGI: " << response << "\n"; //TODO Debug
+    return response;
+}
+
 void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string response;
     std::string file = getRequestedFilename();
@@ -225,8 +286,7 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
             }
         } else {
             if (it != conf.locationConstEnd() && std::find(it->cgiLangs.begin(), it->cgiLangs.end(), ext) != it->cgiLangs.end()) {
-                    std::cout << "allowed cgi\n";
-                    //response = executeCGI();
+                response = executeCGI(root, ext, conf, GET);
             } else {
                 response = getHTTPCode(conf, "403");
             }
@@ -863,6 +923,24 @@ std::string Server::searchFileLocation(const std::string &file) {
     }
     location += '/';
     return location;
+}
+
+std::string Server::getInterpreterPath(const std::string &ext) {
+    std::string interpreter;
+    if (ext == "sh") {
+        interpreter = "/bin/sh";
+    } else if (ext == "py") {
+        interpreter = "/usr/bin/python3";
+    } else if (ext == "pl") {
+        interpreter = "/usr/bin/perl"; //TODO check just in case all the interpreter paths
+    } else if (ext == "php") {
+        interpreter = "/usr/bin/php";
+    } else if (ext == "rb") {
+        interpreter = "/usr/bin/ruby";
+    } else if (ext == "js" || ext == "ts") {
+        //TODO route to node.js
+    }
+    return interpreter;
 }
 
 //Debug
