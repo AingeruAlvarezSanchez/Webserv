@@ -1044,18 +1044,18 @@ bool Server::isValidHost(const ServerConf &conf) {
 }
 
 bool Server::isAllowedMethod(const ServerConf &conf, int method) {
-    std::string file = getRequestedFilename().substr(2); //TODO check better need to get the complete route
-    ServerConf::LocationConstIterator location = conf.findLocation(file);
+    std::string file = getRequestedFilename();
+    std::string location = searchFileLocation(file);
+    ServerConf::LocationConstIterator it = conf.findLocation(location);
 
-    std::cout << "file: " << file << "\n";
-    if (location != conf.locationConstEnd()) {
+    if (it != conf.locationConstEnd()) {
         switch (method) {
             case GET:
-                return location->allowGet;
+                return it->allowGet;
             case POST:
-                return location->allowPost;
+                return it->allowPost;
             case DELETE:
-                return location->allowDelete;
+                return it->allowDelete;
         }
     } else {
         switch (method) {
