@@ -23,7 +23,7 @@ int Server::acceptClientConnection(int serverSocket)
     {
         if(errno == EWOULDBLOCK || errno == EAGAIN)
         {
-            std::cout << "No pending connections" << std::endl;
+            std::cerr << "No pending connections" << std::endl;
             return(-1);
         }
 
@@ -43,9 +43,8 @@ void Server::setSockets(fd_set &readfds, fd_set &writefds, SocketManager &server
         FD_SET(it->first, &readfds);
     }
 
-    for (const auto& client : clientSocket)
-    {
-        FD_SET(client, &readfds);
+    for (std::vector<int>::iterator client = clientSocket.begin(); client != clientSocket.end(); client++) {
+        FD_SET(*client, &readfds);
     }
 }
 
@@ -73,9 +72,34 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
     std::string endOfHeaders = "\r\n\r\n";
     std::string contentLengthHeader = "Content-Length: ";
 
+    this->isChunked = false;
+    std::string transferEncodingHeader = "Transfer-Encoding: chunked";
+
     while ((bytesRead = recv(clientSocket, &c, 1, 0)) > 0)
     {
         this->data.push_back(c);
+        std::size_t transferEncodingPos = this->data.find(transferEncodingHeader);
+        intIterator it;
+        for(it = this->chunkedClients.begin(); it != this->chunkedClients.end(); it++)
+        {
+            if(clientSocket == *it)
+            {
+                this->isChunked = true;
+                break;
+            }
+
+        }
+        if(this->isChunked)
+        {
+            continue;
+        }
+        if(transferEncodingPos != std::string::npos)
+        {
+            this->chunkedClients.push_back(clientSocket);
+            break;
+        }
+
+        //TODO-----------------------------------//
         if (!foundEndOfHeaders)
         {
             if (this->data.find(endOfHeaders) != std::string::npos)
@@ -92,18 +116,20 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
             }
         }
 
-        if (foundEndOfHeaders && this->data.length() - this->data.find(endOfHeaders) - endOfHeaders.length() >= contentLength)
+        if (!isChunked && foundEndOfHeaders && this->data.length() - this->data.find(endOfHeaders)
+                - endOfHeaders.length() >= contentLength)
         {
             break;
         }
     }
-    std::cout << "request is \n" << this->data << std::endl; //TODO Debug
-
     parseRequest();
-    printValueForKey("Content-Type"); //TODO debug
+    //printValueForKey("Content-Type"); //TODO debug
     extractFilename();
-    printMap(); //TODO Debug
-    crossRoads(clientSocket, conf);
+    //printMap(); //TODO Debug
+    if(this->isChunked)
+        handlePostRequest(clientSocket, conf);
+    else
+        crossRoads(clientSocket, conf);
     clearAll();
 }
 
@@ -192,8 +218,9 @@ std::string Server::findAltFile(std::string &file, const ServerConf &conf, const
     return response;
 }
 
-std::string Server::executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request) {
+std::string Server::executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request, std::string binary = "") {
     std::string response;
+    int val;
     int pipefd[2];
     if (pipe(pipefd) == -1) {
         std::cerr << "Fatal error on pipe: could not execute CGI\n";
@@ -209,19 +236,26 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
         std::string interpreterPath = getInterpreterPath(ext);
-        char **env = {};
-        char **args = {};
+        char **env;
+        char **args;
 
         if (request == POST) {
-            //args = (char **)malloc(sizeof(char *) * argumentos); //TODO config
-            //args += arguments //TODO configurate
-            //env = getCGIenv();
+            args = (char **)malloc(sizeof(char *) * 5);
+            args[2] = (char *)binary.c_str();
+            args[3] = (char *)this->fileName.c_str();
+            args[4] = NULL;
+            env = (char **)malloc(sizeof(char *) * 3);
+            std::string path = "PATH_INFO="; //TODO not good
+            std::string max_size = "MAX_FILE_SIZE=10000000000000"; //TODO not good
+            env[0] = (char *)path.c_str();
+            env[1] = (char *)max_size.c_str();
+            env[2] = NULL;
         } else {
             args = (char **)malloc(sizeof(char *) * 3);
             args[2] = NULL;
         }
-        args[0] = interpreterPath.substr(interpreterPath.find_last_of('/') + 1).data();
-        args[1] = executable.data();
+        args[0] = (char *)interpreterPath.substr(interpreterPath.find_last_of('/') + 1).data();
+        args[1] = (char *)executable.data();
 
         execve(interpreterPath.data(), args, env);
         std::cerr << "Error: " << executable.substr(executable.find_last_of('/') + 1)
@@ -240,16 +274,23 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         }
         close(pipefd[0]);
         waitpid(pid, &status, 0);
+        std::cout << "response: " << response << "\n";
+        if (WIFEXITED(status)) {
+            val = WEXITSTATUS(status);
+        }
     }
 
-    if (response == "error") {
+    if (val == 1 || response == "error") {
         response = getHTTPCode(conf, "500");
     } else {
-        response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "
-                    + std::to_string(response.length())
-                    + "\r\n\r\n" + response;
+        if (request == GET) {
+            response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "
+                       + std::to_string(response.length())
+                       + "\r\n\r\n" + response; //TODO change
+        } else if (request == POST) {
+            response = "success";
+        }
     }
-    std::cout << "response from the CGI: " << response << "\n"; //TODO Debug
     return response;
 }
 
@@ -262,8 +303,6 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     root = searchFullRoot(file, conf);
     std::string location = searchFileLocation(file);
 
-    std::cout << "root: " << root << "\n";
-    std::cout << "file: " << file << "\n";
     if (isValidHost(conf)) {
         ServerConf::LocationConstIterator it = conf.findLocation(location);
         std::pair<std::string, std::string> content = loadStaticContent(root);
@@ -272,7 +311,13 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
         if (it != conf.locationConstEnd() && it->redirect.first) {
             std::ostringstream code;
             code << it->redirect.first;
-            response = getHTTPCode(conf, code.str(), it->redirect.second);
+            std::string page = "http://";
+            if (it->redirect.second.find_last_of('/') != std::string::npos) {
+                 page += it->redirect.second.substr(it->redirect.second.find_last_of('/'));
+            } else {
+                page += it->redirect.second;
+            }
+            response = getHTTPCode(conf, code.str(), page);
         } else if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
                             && ext != "php" && ext != "rb" && ext != "js")) {
             if (isDirectory(root) || file.empty()) {
@@ -292,9 +337,71 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
             }
         }
     } else {
-        response = getHTTPCode(conf, "404"); //TODO if we use response = "" would it give a more accurate response?
+            response = getHTTPCode(conf, "404");
     }
     this->clientResponses.push_back(std::make_pair(clientSocket, response));
+}
+
+void Server::handlePostRequest(int clientSocket, ServerConf &conf) {
+    std::string binary;
+    std::string response;
+    bool chunk = false;
+
+    intIterator it;
+
+    if(this->isChunked)
+    {
+        binary = parseChunkedRequest(this->data.c_str());
+        std::string name = "upload.py";
+        executeCGI(name, "py", conf, POST, binary);
+        response = "HTTP/1.1 200 OK\r\n";
+    }
+
+    else
+    {
+        for(it = this->chunkedClients.begin(); it != this->chunkedClients.end(); ++it)
+        {
+            if (clientSocket == *it )
+            {
+                std::cout << "Is Chunked\n";
+                response = "HTTP/1.1 100 Continue\r\n\r\n";
+                chunk = true;
+                break;
+            }
+        }
+
+        if(!chunk)
+        {
+            std::string boundary = extractBoundary();
+            std::cout << "Valor de boundary: " << boundary << std::endl;
+
+            if (!boundary.empty())
+            {
+                binary = extractFileContent(boundary);
+                std::string name = "upload.py";
+                response = executeCGI(name, "py", conf, POST, binary);
+            }
+            std::cout << "response: " << response << "\n";
+            if (response == "success") {
+                std::cout << "file: " << fileName << "\n";
+                response = getHTTPCode(conf, "200", fileName);
+            }
+        }
+    }
+    this->clientResponses.push_back(std::make_pair(clientSocket, response));
+}
+
+void Server::handleDeleteRequest(int clientSocket, ServerConf &conf) {
+    std::cout << "This is a Delete request\n"; //TODO Debug
+    //TODO this function is not properly checked
+    std::string deleted = getDeletedFilename();
+    std::string resp;
+    if(remove(deleted.c_str()) != 0)
+        resp = getHTTPCode(conf, "500");
+    else {
+        resp = getHTTPCode(conf, "200", deleted); //TODO
+    }
+    this->clientResponses.push_back(std::make_pair(clientSocket, resp));
 }
 
 void    Server::showAutoIndex(std::string &fileName, std::string &response) {
@@ -302,10 +409,8 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
         fileName = ".";
     if(fileName.back() == '/' || fileName == ".")
     {
-        std::cout << "DIRECTORY\n\n";
         std::string autoIndex;
-        autoIndex += "<html><head><title>Autoindex</title></head><body>";
-        autoIndex += "<h1>Index of " + fileName + "</h1>";
+        autoIndex += "<html><head><title>Index</title></head><body>";
         autoIndex += "<ul>";
 
         DIR *dir;
@@ -382,18 +487,18 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
 void Server::crossRoads(int clientSocket, ServerConf &conf)
 {
     std::string requestMethod = cut(this->data, " ");
-    std::cout << "REQUEST METHOD: " << requestMethod << std::endl; //TODO Debug
+    std::cout << "request method is: " << requestMethod << "\n";
     if(requestMethod == "GET" && isAllowedMethod(conf, GET))
     {
         handleGetRequest(clientSocket, conf);
     }
     else if(requestMethod == "POST" && isAllowedMethod(conf, POST))
     {
-        //handlePostRequest(clientSocket); //TODO
+        handlePostRequest(clientSocket, conf);
     }
     else if(requestMethod == "DELETE" && isAllowedMethod(conf, DELETE))
     {
-        //handleDeleteRequest(clientSocket); //TODO
+        handleDeleteRequest(clientSocket, conf);
     }
     else
     {
@@ -403,7 +508,7 @@ void Server::crossRoads(int clientSocket, ServerConf &conf)
 }
 
 void Server::checkClientRequest(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket) {
-    for (auto it = clientSocket.begin(); it != clientSocket.end();)
+    for (std::vector<int>::iterator it = clientSocket.begin(); it != clientSocket.end();)
     {
         if (FD_ISSET(*it, &readfds))
         {
@@ -428,7 +533,7 @@ void Server::sendResponse(int clientSocket, const std::string& response)
     unsigned long bufferSize = response.length();
     int result = setsockopt(clientSocket, SOL_SOCKET, SO_SNDBUF, &bufferSize, sizeof(bufferSize));
     if(result == -1) {
-        std::cout << "Error while assigning the buffer's size to socket\n" << std::endl;
+        std::cerr << "Error while assigning the buffer's size to socket\n" << std::endl;
     }
 
     while (totalBytesSent < response.length())
@@ -454,15 +559,22 @@ void Server::sendResponse(int clientSocket, const std::string& response)
     }
 }
 
-void Server::handleResponses(fd_set &writefds) {
-    for (auto it = this->clientResponses.begin(); it != this->clientResponses.end();)
+void Server::handleResponses(fd_set &writefds, std::vector<int> &clientSocket) {
+    for (std::vector<Pair>::iterator it = this->clientResponses.begin(); it != this->clientResponses.end();)
     {
         if (FD_ISSET(it->first, &writefds))
         {
             int fd = it->first;
             std::string re = it->second;
             sendResponse(fd, re);
-            close(fd);
+            if(re == "HTTP/1.1 100 Continue\r\n\r\n")
+            {
+                clientSocket.push_back(fd);
+            }
+            else
+            {
+                close(fd);
+            }
             it = this->clientResponses.erase(it);
             FD_CLR(fd, &writefds);
         }
@@ -504,7 +616,7 @@ void Server::start(SocketManager &serverSockets) {
 
         checkIncoming(readfds, serverSockets, clientSocket, biggest);
         checkClientRequest(readfds, writefds, serverSockets, clientSocket);
-        handleResponses(writefds);
+        handleResponses(writefds, clientSocket);
     }
     for (SocketManager::SockIter it = serverSockets.sockBegin(); it != serverSockets.sockEnd(); it++) {
         close(it->first);
@@ -563,20 +675,59 @@ void Server::extractFilename()
                 }
             }
         }
+    }
+}
 
-        if (!this->fileName.empty())
-        {
-            std::cout << "Filename: " << this->fileName << std::endl;
-        }
-        else
-        {
-            std::cout << "Filename not found in " << key << std::endl;
-        }
-    }
-    else
+std::string Server::extractBoundary() {
+    std::string boundary;
+    std::size_t boundaryPos = this->data.find("boundary=");
+    if (boundaryPos != std::string::npos)
     {
-        std::cout << "Key not found: " << key << std::endl;
+        std::size_t startPos = boundaryPos + 9;
+        std::size_t endPos = this->data.find("\r\n", startPos);
+        if (endPos != std::string::npos)
+        {
+            boundary = this->data.substr(startPos, endPos - startPos);
+        }
     }
+    return boundary;
+}
+
+std::string Server::parseChunkedRequest(const char *request) {
+    std::string data;
+    // Skip the request headers
+
+    const char* start = strstr(request, "\r\n\r\n");
+
+    if (start == NULL)
+    {
+        return data; // Invalid request
+    }
+
+    start += 4;
+
+    // Process each chunk
+    while (true)
+    {
+        char* endPtr;
+        unsigned long chunkSize = strtoul(start, &endPtr, 16);
+        if (chunkSize == 0)
+        {
+            break; // Last chunk
+        }
+
+        start = endPtr + 2; // Skip chunk size and CRLF
+
+        // Append chunk data to the result
+        data.append(start, chunkSize);
+
+        start += chunkSize + 2; // Skip chunk data and CRLF
+    }
+    std::cout << "data chunked es\n";
+    std::cout << data << std::endl;
+    std::cout << "longitud de data\n";
+    std::cout << data.length() << std::endl;
+    return data;
 }
 
 std::string Server::getRequestedFilename()
@@ -618,6 +769,33 @@ std::string Server::readFileContent(const std::string& filename)
     return "";
 }
 
+std::string Server::extractFileContent(const std::string &boundary) {
+    std::string fileBoundaryStart = "--" + boundary + "\r\n";
+    std::string fileBoundaryEnd = "--" + boundary + "--";
+    std::size_t fileStartPos = this->data.find(fileBoundaryStart);
+    std::size_t fileEndPos = this->data.find(fileBoundaryEnd, fileStartPos);
+    if(fileStartPos != std::string::npos && fileEndPos != std::string::npos)
+    {
+        std::string fileContent;
+        std::size_t fileContentStartPos = this->data.find("\r\n\r\n", fileStartPos);
+        if(fileContentStartPos != std::string::npos)
+        {
+            fileContentStartPos += 4;
+            fileContent = this->data.substr(fileContentStartPos, fileEndPos - fileContentStartPos - 2);
+            std::cout << "Contenido del archivo extraido exitosamente\n";
+            return(fileContent);
+        }
+        else
+        {
+            std::cout << "No se pudo encontrar el contenido del archivo\n";
+            return "";
+        }
+    }
+
+    std::cout << "No se pudo encontrar el archivo en la solicitud\n";
+    return "";
+}
+
 //Utils
 SocketManager::SockIter Server::findClientConfig(int clientSocket, SocketManager &serverSockets) {
     SocketManager::SockIter pos = serverSockets.sockBegin();
@@ -626,7 +804,7 @@ SocketManager::SockIter Server::findClientConfig(int clientSocket, SocketManager
     socklen_t specs_size = sizeof(specs);
 
     if (getsockname(clientSocket, (struct sockaddr*)&specs, &specs_size) == -1) {
-        std::cout << "Error while trying to retrieve client information.\n";
+        std::cerr << "Error while trying to retrieve client information.\n";
         return serverSockets.sockEnd();
     }
 
@@ -683,7 +861,6 @@ void Server::clearAll()
 
 std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code, const std::string &file) {
     std::string response;
-    std::cout << "the file inside errors: " << file << "\n";
     if (code == "301" || code == "302") {
         response = "HTTP/1.1 " + code;
         if (code == "301") {
@@ -705,18 +882,23 @@ std::string Server::getHTTPCode(const ServerConf &conf, const std::string &code,
         if (!conf.server().defErrorPage.empty()) {
             for (ServerConf::UshortVecMap::const_iterator it = conf.server().defErrorPage.begin();
                     it != conf.server().defErrorPage.end(); it++) {
-                std::cout << "code on iterator: " << it->first << "\n";
                 if (it->first == std::atoi(code.c_str())) {
                     content = loadStaticContent(*it->second.begin());
+                    if (content.first.empty() && content.second.empty()) {
+                        break ;
+                    }
                     std::string contentType = content.first;
                     std::string fileContent = content.second;
                     size_t start = fileContent.find("<title>") + 7;
                     size_t end = fileContent.find("</title>");
-                    std::string title = fileContent.substr(start, end - start);
-                    response = "HTTP/1.1 " + title
-                               + "\r\nContent-Type: " + contentType
-                               + "\r\nContent-Length: " + std::to_string(fileContent.length())
-                               + "\r\n\r\n" + fileContent;
+                    response = "HTTP/1.1 ";
+                    if (start != std::string::npos + 7 && end != std::string::npos) {
+                        std::string title = fileContent.substr(start, end - start);
+                        response += title;
+                    }
+                   response += "\r\nContent-Type: " + contentType
+                   + "\r\nContent-Length: " + std::to_string(fileContent.length())
+                   + "\r\n\r\n" + fileContent;
                     return response;
                 }
             }
@@ -829,7 +1011,7 @@ bool Server::isValidHost(const ServerConf &conf) {
 }
 
 bool Server::isAllowedMethod(const ServerConf &conf, int method) {
-    std::string file = getRequestedFilename();
+    std::string file = getRequestedFilename().substr(2); //TODO check better need to get the complete route
     ServerConf::LocationConstIterator location = conf.findLocation(file);
 
     if (location != conf.locationConstEnd()) {
@@ -932,16 +1114,38 @@ std::string Server::getInterpreterPath(const std::string &ext) {
     } else if (ext == "py") {
         interpreter = "/usr/bin/python3";
     } else if (ext == "pl") {
-        interpreter = "/usr/bin/perl"; //TODO check just in case all the interpreter paths
+        interpreter = "/usr/bin/perl";
     } else if (ext == "php") {
         interpreter = "/usr/bin/php";
     } else if (ext == "rb") {
         interpreter = "/usr/bin/ruby";
-    } else if (ext == "js" || ext == "ts") {
-        //TODO route to node.js
     }
     return interpreter;
 }
+
+std::string Server::getDeletedFilename()
+{
+    std::string filename;
+    std::size_t startPos = this->data.find("DELETE /") + 8;
+    std::size_t endPos = this->data.find(" HTTP/1.1\r\n");
+    if (endPos != std::string::npos)
+    {
+        filename = this->data.substr(startPos, endPos - startPos);
+    }
+    return filename;
+}
+
+std::string Server::loadStatic() {
+    std::ifstream inputFile("index.html", std::ios::binary);
+    if (!inputFile)
+    {
+        std::cerr << "Error al abrir el archivo: " << std::endl;
+        return "";
+    }
+    std::string content((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+    inputFile.close();
+    return content;
+} //TODO erase
 
 //Debug
 void Server::printValueForKey(const std::string& key)

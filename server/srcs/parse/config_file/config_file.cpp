@@ -1,5 +1,25 @@
 #include <fstream>
+#include <fcntl.h>
 #include "webserv.h"
+
+int check_arguments(int argc, const std::string &file) {
+    if (argc < 2) {
+        errno = EINVAL;
+        return -1;
+    } else if (argc > 2) {
+        errno = E2BIG;
+        return -1;
+    }
+
+    if (file.find_last_of('.') == std::string::npos || file.substr(file.find_last_of('.')) != ".conf") {
+        errno = EINVAL;
+        return -1;
+    } else if (open(file.c_str(), O_RDONLY) == -1) {
+        errno = EINVAL;
+        return -1;
+    }
+    return 0;
+}
 
 std::string config_file_content(const std::string &file) {
     std::ifstream stream(file.c_str());

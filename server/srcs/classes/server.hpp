@@ -14,6 +14,7 @@ class Server {
     typedef std::list<std::string>::const_iterator          ListIterator;
     typedef std::pair<int, std::string>                     Pair;
     typedef std::pair<std::string, std::string>             DoubleStrPair;
+    typedef std::vector<int>::iterator                      intIterator;
 
 public:
 
@@ -27,6 +28,8 @@ private:
     std::string         fileName;
     KeyValueMap         keyValuePairs;
     std::vector<Pair>   clientResponses;
+    bool                isChunked;
+    std::vector<int>    chunkedClients;
 
     //Client socket handling
     int         acceptClientConnection(int serverSocket);
@@ -34,12 +37,14 @@ private:
     void        checkIncoming(fd_set &readfds, SocketManager &serverSockets, std::vector<int> &clientSocket, int &biggest);
     void        checkClientRequest(fd_set &readfds, fd_set &writefds, SocketManager &serverSockets, std::vector<int> &clientSocket);
     void        handleClientRequest(int clientSocket, ServerConf &conf);
-    void        handleResponses(fd_set &writefds);
+    void        handleResponses(fd_set &writefds, std::vector<int> &clientSocket);
     void        sendResponse(int clientSocket, const std::string& response);
     void        crossRoads(int clientSocket, ServerConf &conf);
     void        handleGetRequest(int clientSocket, ServerConf &conf);
+    void        handlePostRequest(int clientSocket, ServerConf &conf);
+    void        handleDeleteRequest(int clientSocket, ServerConf &conf);
     void        showAutoIndex(std::string &fileName, std::string &response);
-    std::string executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request);
+    std::string executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request, std::string binary);
 
     //Parsing
     void        parseRequest();
@@ -47,6 +52,9 @@ private:
     std::string getRequestedFilename();
     std::string generateDownloadResponse(const std::string& filename);
     std::string readFileContent(const std::string& filename);
+    std::string extractFileContent(const std::string &boundary);
+    std::string extractBoundary();
+    std::string parseChunkedRequest(const char* request);
 
     //Utils
     static SocketManager::SockIter  findClientConfig(int clientSocket, SocketManager &serverSockets);
@@ -66,6 +74,8 @@ private:
 	std::string						findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf);
     std::string                     findAltFile(std::string &file, const ServerConf &conf, const std::string &location);
     std::string                     getInterpreterPath(const std::string &ext);
+    std::string                     getDeletedFilename();
+    std::string                     loadStatic();  //TODO erase
 
     //Debug
     void    printValueForKey(const std::string& key);

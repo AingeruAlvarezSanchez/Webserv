@@ -4,6 +4,7 @@
 #include "socket_manager.hpp"
 
 //Config file
+int check_arguments(int argc, const std::string &file);
 std::string config_file_content(const std::string &file);
 int config_file_parser(std::string &content, std::vector<ServerConf> &serverConf);
 
