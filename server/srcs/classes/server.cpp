@@ -240,13 +240,22 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         char **args;
 
         if (request == POST) {
+            std::string location = searchFileLocation(getRequestedFilename());
+            ServerConf::LocationConstIterator it = conf.findLocation(location);
             args = (char **)malloc(sizeof(char *) * 5);
             args[2] = (char *)binary.c_str();
             args[3] = (char *)this->fileName.c_str();
             args[4] = NULL;
             env = (char **)malloc(sizeof(char *) * 3);
-            std::string path = "PATH_INFO="; //TODO not good
-            std::string max_size = "MAX_FILE_SIZE=10000000000000"; //TODO not good
+            std::ostringstream os;
+            os << conf.server().maxBytes;
+            std::string max_size = "MAX_FILE_SIZE=" + os.str();
+            std::string path = "PATH_INFO=";
+            if (it != conf.locationConstEnd()) {
+                path += conf.server().rootDir + it->uploadDir;
+            }
+            std::cerr << "path is: " << path << "\n";
+            std::cerr << "size is: " << max_size << "\n";
             env[0] = (char *)path.c_str();
             env[1] = (char *)max_size.c_str();
             env[2] = NULL;
@@ -260,7 +269,6 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         execve(interpreterPath.data(), args, env);
         std::cerr << "Error: " << executable.substr(executable.find_last_of('/') + 1)
                   << ": could not execute CGI.\n";
-        write(1, "error", sizeof("error"));
         exit(1);
     } else {
         int status;
@@ -280,7 +288,7 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         }
     }
 
-    if (val == 1 || response == "error") {
+    if (val == 1) {
         response = getHTTPCode(conf, "500");
     } else {
         if (request == GET) {
@@ -299,8 +307,7 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
     std::string file = getRequestedFilename();
     std::string ext = getFileExt(file);
 
-    std::string root;
-    root = searchFullRoot(file, conf);
+    std::string root = searchFullRoot(file, conf);
     std::string location = searchFileLocation(file);
 
     if (isValidHost(conf)) {
@@ -344,47 +351,42 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
 
 void Server::handlePostRequest(int clientSocket, ServerConf &conf) {
     std::string binary;
+    std::string binaryEncoded;
     std::string response;
+
     bool chunk = false;
-
     intIterator it;
-
     if(this->isChunked)
     {
         binary = parseChunkedRequest(this->data.c_str());
-        std::string name = "upload.py";
-        executeCGI(name, "py", conf, POST, binary);
-        response = "HTTP/1.1 200 OK\r\n";
+        binaryEncoded = base64_encode(binary);
+        std::string name = "http/upload_cgi/upload.py";
+        executeCGI(name, "py", conf, POST, binaryEncoded);
+        response = getHTTPCode(conf, "200", "http/default_success.html");
     }
-
     else
     {
         for(it = this->chunkedClients.begin(); it != this->chunkedClients.end(); ++it)
         {
             if (clientSocket == *it )
             {
-                std::cout << "Is Chunked\n";
                 response = "HTTP/1.1 100 Continue\r\n\r\n";
                 chunk = true;
                 break;
             }
         }
-
         if(!chunk)
         {
             std::string boundary = extractBoundary();
-            std::cout << "Valor de boundary: " << boundary << std::endl;
-
             if (!boundary.empty())
             {
                 binary = extractFileContent(boundary);
-                std::string name = "upload.py";
-                response = executeCGI(name, "py", conf, POST, binary);
+                std::string name = "http/upload_cgi/upload.py";
+                binaryEncoded = base64_encode(binary);
+                response = executeCGI(name, "py", conf, POST, binaryEncoded);
             }
-            std::cout << "response: " << response << "\n";
             if (response == "success") {
-                std::cout << "file: " << fileName << "\n";
-                response = getHTTPCode(conf, "200", fileName);
+                response = getHTTPCode(conf, "200", "http/default_success.html");
             }
         }
     }
@@ -392,16 +394,47 @@ void Server::handlePostRequest(int clientSocket, ServerConf &conf) {
 }
 
 void Server::handleDeleteRequest(int clientSocket, ServerConf &conf) {
-    std::cout << "This is a Delete request\n"; //TODO Debug
-    //TODO this function is not properly checked
-    std::string deleted = getDeletedFilename();
+    std::string location = searchFileLocation(getRequestedFilename());
+    ServerConf::LocationConstIterator it = conf.findLocation(location);
+    std::string deleted = conf.server().rootDir;
+    if (it != conf.locationConstEnd()) {
+        deleted += it->uploadDir;
+    }
+    if (getDeletedFilename().find_last_of('/') != std::string::npos) {
+        deleted += getDeletedFilename().substr(getDeletedFilename().find_last_of('/') + 1);
+    }
     std::string resp;
     if(remove(deleted.c_str()) != 0)
         resp = getHTTPCode(conf, "500");
     else {
-        resp = getHTTPCode(conf, "200", deleted); //TODO
+        resp = getHTTPCode(conf, "200", "http/default_success.html"); //TODO
     }
     this->clientResponses.push_back(std::make_pair(clientSocket, resp));
+}
+
+std::string Server::base64_encode(const std::string &input) {
+    std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string encoded;
+    int val = 0, valb = -6;
+    for (char c : input)
+    {
+        val = (val << 8) + static_cast<unsigned char>(c);
+        valb += 8;
+        while (valb >= 0)
+        {
+            encoded.push_back(base64_chars[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6)
+    {
+        encoded.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+    }
+    while (encoded.size() % 4 != 0)
+    {
+        encoded.push_back('=');
+    }
+    return encoded;
 }
 
 void    Server::showAutoIndex(std::string &fileName, std::string &response) {
@@ -496,7 +529,7 @@ void Server::crossRoads(int clientSocket, ServerConf &conf)
     {
         handlePostRequest(clientSocket, conf);
     }
-    else if(requestMethod == "DELETE" && isAllowedMethod(conf, DELETE))
+    else if(requestMethod == "DELETE") //TODO
     {
         handleDeleteRequest(clientSocket, conf);
     }
@@ -1014,6 +1047,7 @@ bool Server::isAllowedMethod(const ServerConf &conf, int method) {
     std::string file = getRequestedFilename().substr(2); //TODO check better need to get the complete route
     ServerConf::LocationConstIterator location = conf.findLocation(file);
 
+    std::cout << "file: " << file << "\n";
     if (location != conf.locationConstEnd()) {
         switch (method) {
             case GET:
@@ -1134,18 +1168,6 @@ std::string Server::getDeletedFilename()
     }
     return filename;
 }
-
-std::string Server::loadStatic() {
-    std::ifstream inputFile("index.html", std::ios::binary);
-    if (!inputFile)
-    {
-        std::cerr << "Error al abrir el archivo: " << std::endl;
-        return "";
-    }
-    std::string content((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
-    inputFile.close();
-    return content;
-} //TODO erase
 
 //Debug
 void Server::printValueForKey(const std::string& key)

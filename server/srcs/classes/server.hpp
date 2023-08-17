@@ -75,7 +75,7 @@ private:
     std::string                     findAltFile(std::string &file, const ServerConf &conf, const std::string &location);
     std::string                     getInterpreterPath(const std::string &ext);
     std::string                     getDeletedFilename();
-    std::string                     loadStatic();  //TODO erase
+    std::string                     base64_encode(const std::string& input);
 
     //Debug
     void    printValueForKey(const std::string& key);
