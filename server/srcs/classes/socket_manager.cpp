@@ -1,6 +1,7 @@
 #include <cstring>
 #include <iostream>
 #include <climits>
+#include <cerrno>
 #include "socket_manager.hpp"
 
 //Constructors

@@ -117,7 +117,7 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
         }
 
         if (!isChunked && foundEndOfHeaders && this->data.length() - this->data.find(endOfHeaders)
-                - endOfHeaders.length() >= contentLength)
+                - endOfHeaders.length() >= static_cast<long unsigned int>(contentLength))
         {
             break;
         }
@@ -133,7 +133,7 @@ void Server::handleClientRequest(int clientSocket, ServerConf &conf)
     clearAll();
 }
 
-std::string Server::findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf) {
+std::string Server::findDirFile(std::string &root, const std::string &location, const ServerConf &conf) {
     std::string response;
     DIR *dir;
     struct dirent *entry;
@@ -171,7 +171,7 @@ std::string Server::findDirFile(std::string &file, std::string &root, const std:
     return response;
 }
 
-std::string Server::findAltFile(std::string &file, const ServerConf &conf, const std::string &location) {
+std::string Server::findAltFile(std::string &file, const ServerConf &conf) {
     std::string response;
     std::string dirName;
     if (file.find_last_of('/') == std::string::npos) {
@@ -328,10 +328,10 @@ void Server::handleGetRequest(int clientSocket, ServerConf &conf) {
         } else if (ext.empty() || (ext != "sh" && ext != "py" && ext != "pl"
                             && ext != "php" && ext != "rb" && ext != "js")) {
             if (isDirectory(root) || file.empty()) {
-                response = findDirFile(file, root, location, conf); //TODO check more
+                response = findDirFile(root, location, conf); //TODO check more
             } else {
                 if (fileContent.empty()) {
-                    response = findAltFile(file, conf, location); //TODO check more
+                    response = findAltFile(file, conf); //TODO check more
                 } else {
                     response = getHTTPCode(conf, "200", root);
                 }
@@ -437,10 +437,10 @@ std::string Server::base64_encode(const std::string &input) {
     return encoded;
 }
 
-void    Server::showAutoIndex(std::string &fileName, std::string &response) {
-    if (fileName.empty() || fileName == "favicon.ico")
-        fileName = ".";
-    if(fileName.back() == '/' || fileName == ".")
+void    Server::showAutoIndex(std::string &fName, std::string &response) {
+    if (fName.empty() || fName == "favicon.ico")
+        fName = ".";
+    if(fName.back() == '/' || fName == ".")
     {
         std::string autoIndex;
         autoIndex += "<html><head><title>Index</title></head><body>";
@@ -451,12 +451,12 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
         std::vector<std::string> files;
         std::vector<std::string> directories;
 
-        if((dir = opendir(fileName.c_str())) != NULL)
+        if((dir = opendir(fName.c_str())) != NULL)
         {
             while((entry = readdir(dir)) != NULL)
             {
                 std::string name = entry->d_name;
-                std::string path = fileName += "/" + name;
+                std::string path = fName += "/" + name;
 
                 if(entry->d_type == DT_DIR)
                 {
@@ -513,14 +513,13 @@ void    Server::showAutoIndex(std::string &fileName, std::string &response) {
 
     else
     {
-        response = generateDownloadResponse(fileName);
+        response = generateDownloadResponse(fName);
     }
 }
 
 void Server::crossRoads(int clientSocket, ServerConf &conf)
 {
     std::string requestMethod = cut(this->data, " ");
-    std::cout << "request method is: " << requestMethod << "\n";
     if(requestMethod == "GET" && isAllowedMethod(conf, GET))
     {
         handleGetRequest(clientSocket, conf);
@@ -529,7 +528,7 @@ void Server::crossRoads(int clientSocket, ServerConf &conf)
     {
         handlePostRequest(clientSocket, conf);
     }
-    else if(requestMethod == "DELETE") //TODO
+    else if(requestMethod == "DELETE" && isAllowedMethod(conf, POST))
     {
         handleDeleteRequest(clientSocket, conf);
     }
@@ -727,14 +726,14 @@ std::string Server::extractBoundary() {
 }
 
 std::string Server::parseChunkedRequest(const char *request) {
-    std::string data;
+    std::string reqData;
     // Skip the request headers
 
     const char* start = strstr(request, "\r\n\r\n");
 
     if (start == NULL)
     {
-        return data; // Invalid request
+        return reqData; // Invalid request
     }
 
     start += 4;
@@ -752,15 +751,15 @@ std::string Server::parseChunkedRequest(const char *request) {
         start = endPtr + 2; // Skip chunk size and CRLF
 
         // Append chunk data to the result
-        data.append(start, chunkSize);
+        reqData.append(start, chunkSize);
 
         start += chunkSize + 2; // Skip chunk data and CRLF
     }
     std::cout << "data chunked es\n";
-    std::cout << data << std::endl;
+    std::cout << reqData << std::endl;
     std::cout << "longitud de data\n";
-    std::cout << data.length() << std::endl;
-    return data;
+    std::cout << reqData.length() << std::endl;
+    return reqData;
 }
 
 std::string Server::getRequestedFilename()

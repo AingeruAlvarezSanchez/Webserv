@@ -43,7 +43,7 @@ private:
     void        handleGetRequest(int clientSocket, ServerConf &conf);
     void        handlePostRequest(int clientSocket, ServerConf &conf);
     void        handleDeleteRequest(int clientSocket, ServerConf &conf);
-    void        showAutoIndex(std::string &fileName, std::string &response);
+    void        showAutoIndex(std::string &fName, std::string &response);
     std::string executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request, std::string binary);
 
     //Parsing
@@ -71,8 +71,8 @@ private:
     std::string                     getContentType(const std::string& extension);
     static std::string              searchFullRoot(const std::string &file, ServerConf &conf);
     std::string                     searchFileLocation(const std::string &file);
-	std::string						findDirFile(std::string &file, std::string &root, const std::string &location, const ServerConf &conf);
-    std::string                     findAltFile(std::string &file, const ServerConf &conf, const std::string &location);
+	std::string						findDirFile(std::string &root, const std::string &location, const ServerConf &conf);
+    std::string                     findAltFile(std::string &file, const ServerConf &conf);
     std::string                     getInterpreterPath(const std::string &ext);
     std::string                     getDeletedFilename();
     std::string                     base64_encode(const std::string& input);

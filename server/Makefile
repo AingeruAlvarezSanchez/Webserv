@@ -2,7 +2,7 @@
 
 NAME = webserv
 
-CXX_FLAGS = -Wall -Werror -Wextra -std=c++98 -pedantic-errors -Wshadow
+CXX_FLAGS = -Wall -Werror -Wextra -pedantic-errors -Wshadow -fsanitize=address -g3
 SANITIZE = -g3 -fsanitize=address
 
 INCLUDES = -I./includes/ -I./srcs/classes/
@@ -23,7 +23,7 @@ sanitize: $(OBJS)
 
 $(OBJ_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
 	$(RM) -r $(OBJ_DIR)

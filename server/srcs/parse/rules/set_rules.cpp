@@ -27,6 +27,8 @@ static std::string format_path(const std::string &path) {
 }
 
 int  port_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    path.data();
+    code.data();
     std::string content = erase_value_delimiters(value);
     char *end;
     long num = strtol(content.c_str(), &end, 10);
@@ -38,6 +40,8 @@ int  port_set(ServerConf &serverConf, const std::string &value, const std::strin
 }
 
 int  host_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    path.data();
+    code.data();
     std::string content = erase_value_delimiters(value);
     if (content.empty()) {
         content = "0.0.0.0";
@@ -47,6 +51,8 @@ int  host_set(ServerConf &serverConf, const std::string &value, const std::strin
 }
 
 int  server_name_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    path.data();
+    code.data();
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
@@ -61,6 +67,7 @@ int  server_name_set(ServerConf &serverConf, const std::string &value, const std
 }
 
 int  error_page_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    path.data();
     std::string codeCont = erase_value_delimiters(code);
     char *end;
     long num = strtol(codeCont.c_str(), &end, 10);
@@ -86,6 +93,8 @@ int  error_page_set(ServerConf &serverConf, const std::string &value, const std:
 }
 
 int  max_body_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    code.data();
+    path.data();
     std::string content = erase_value_delimiters(value);
     char *end;
     long num = strtol(value.c_str(), &end, 10);
@@ -101,14 +110,13 @@ int  max_body_set(ServerConf &serverConf, const std::string &value, const std::s
     } else if (endStr.find("kb") != std::string::npos && endStr.find("kb") + 2 >= endStr.size()) {
         serverConf.setMaxBytes(num * 1000);
         return 0;
-    }  else if (endStr.find('b') != std::string::npos && endStr.find('b') + 2 >= endStr.size() || *end == '\0') {
+    }  else if ((endStr.find('b') != std::string::npos && endStr.find('b') + 2 >= endStr.size()) || *end == '\0') {
         serverConf.setMaxBytes(num);
         return 0;
     }
     return -1;
 }
 
-#include <iostream>
 int  limit_except_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
     if (value == "allow_all") {
         std::string line;
@@ -161,6 +169,7 @@ int  root_set(ServerConf &serverConf, const std::string &value, const std::strin
     } else {
         serverConf.setRootDir(content, format_path(path));
     }
+    code.data();
     return 0;
 }
 
@@ -179,6 +188,7 @@ int  try_files_set(ServerConf &serverConf, const std::string &value, const std::
 }
 
 int  auto_index_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    code.data();
     std::string content = erase_value_delimiters(value);
     if (content.find("on") != std::string::npos) {
         if (content.find_first_not_of(" \t") != content.find("on")) {
@@ -197,6 +207,7 @@ int  auto_index_set(ServerConf &serverConf, const std::string &value, const std:
 }
 
 int  index_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    code.data();
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
@@ -211,6 +222,7 @@ int  index_set(ServerConf &serverConf, const std::string &value, const std::stri
 }
 
 int  cgi_pass_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    code.data();
     std::string line;
     std::istringstream is(value, std::ios::in);
     while (std::getline(is, line, ' ')) {
@@ -225,6 +237,7 @@ int  cgi_pass_set(ServerConf &serverConf, const std::string &value, const std::s
 }
 
 int  upload_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+    code.data();
     std::string content = value.substr(value.find_first_not_of(" \t"));
     size_t end = content.find_first_of(" \t");
     if (end != std::string::npos) {
