@@ -7,8 +7,13 @@ std::string  fetch_block(const std::string &content, size_t start, size_t end) {
 
 std::string get_path(const std::string &block) {
     std::string result;
+    std::string line;
 
-    std::string line = block.substr(block.find(':') + 1, block.find('[') - block.find(':') - 1);
+    if (block.find("location") + 8 == block.find(':')){
+        line = block.substr(block.find(':') + 1, block.find('[') - block.find(':') - 1);
+    } else {
+        return "";
+    }
     line.erase(0, line.find_first_not_of(" \t"));
 
     size_t delim = line.find_first_of(" \t");
@@ -19,6 +24,10 @@ std::string get_path(const std::string &block) {
 
     if (tmp.empty() || tmp.find_first_not_of(" \t") == std::string::npos) {
         result = line.substr(0, delim);
+    }
+
+    if (result.empty()) {
+        return result;
     }
 
     if (result.at(0) == '/') {
@@ -60,7 +69,6 @@ int parse_block(std::string &block, ServerConf &serverConf, const std::string &p
         } else if (is_valid_line(line)) {
             block.erase(0, endl + 1);
         } else {
-            return -1;
         }
     }
     return 0;

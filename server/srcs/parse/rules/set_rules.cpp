@@ -118,11 +118,13 @@ int  max_body_set(ServerConf &serverConf, const std::string &value, const std::s
 }
 
 int  limit_except_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
+
     if (value == "allow_all") {
         std::string line;
         std::istringstream is(code, std::ios::in);
         while (std::getline(is, line, ' ')) {
-            if (line == "GET") {
+            ServerConf::LocationConstIterator it = serverConf.findLocation(format_path(path));
+            if (line == "GET" && !it->allowGet) {
                 serverConf.flipPermissions(GET, format_path(path));
             } else if (line == "POST") {
                 serverConf.flipPermissions(POST, format_path(path));
@@ -160,7 +162,7 @@ int  return_set(ServerConf &serverConf, const std::string &value, const std::str
 
 int  root_set(ServerConf &serverConf, const std::string &value, const std::string &path, const std::string &code) {
     std::string content = erase_value_delimiters(value);
-    if (content.at(content.length() - 1) != '/') {
+    if (content.length() && content.at(content.length() - 1) != '/') {
         content += '/';
     }
 

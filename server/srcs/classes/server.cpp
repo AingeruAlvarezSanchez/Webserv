@@ -220,6 +220,7 @@ std::string Server::findAltFile(std::string &file, const ServerConf &conf) {
 
 std::string Server::executeCGI(std::string &executable, const std::string &ext, const ServerConf &conf, bool request, std::string binary = "") {
     std::string response;
+    ssize_t bytesRead = 0;
     int val;
     int pipefd[2];
     if (pipe(pipefd) == -1) {
@@ -254,8 +255,6 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
             if (it != conf.locationConstEnd()) {
                 path += conf.server().rootDir + it->uploadDir;
             }
-            std::cerr << "path is: " << path << "\n";
-            std::cerr << "size is: " << max_size << "\n";
             env[0] = (char *)path.c_str();
             env[1] = (char *)max_size.c_str();
             env[2] = NULL;
@@ -263,7 +262,7 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
             args = (char **)malloc(sizeof(char *) * 3);
             args[2] = NULL;
         }
-        args[0] = (char *)interpreterPath.substr(interpreterPath.find_last_of('/') + 1).data();
+        args[0] = (char *)interpreterPath.data();
         args[1] = (char *)executable.data();
 
         execve(interpreterPath.data(), args, env);
@@ -273,7 +272,6 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
     } else {
         int status;
         char buffer[1024];
-        ssize_t bytesRead = 0;
 
         close(pipefd[1]);
         while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
@@ -282,13 +280,12 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         }
         close(pipefd[0]);
         waitpid(pid, &status, 0);
-        std::cout << "response: " << response << "\n";
         if (WIFEXITED(status)) {
             val = WEXITSTATUS(status);
         }
     }
 
-    if (val == 1) {
+    if (val == 1 || bytesRead == -1) {
         response = getHTTPCode(conf, "500");
     } else {
         if (request == GET) {

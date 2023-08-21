@@ -2,7 +2,7 @@
 
 NAME = webserv
 
-CXX_FLAGS = -Wall -Werror -Wextra -pedantic-errors -Wshadow -fsanitize=address -g3
+CXX_FLAGS = -Wall -Werror -Wextra -pedantic-errors -Wshadow
 SANITIZE = -g3 -fsanitize=address
 
 INCLUDES = -I./includes/ -I./srcs/classes/
