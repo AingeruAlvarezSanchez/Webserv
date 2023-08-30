@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <ctime>
 
 Server::Server() {}
 
@@ -225,6 +226,8 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
     std::string response;
     ssize_t bytesRead = 0;
     int val = 0;
+    bool timeout = true;
+
     int pipefd[2];
     if (pipe(pipefd) == -1) {
         std::cerr << "Fatal error on pipe: could not execute CGI\n";
@@ -274,21 +277,35 @@ std::string Server::executeCGI(std::string &executable, const std::string &ext, 
         exit(1);
     } else {
         int status;
-        char buffer[1024];
+        std::time_t start = std::time(NULL);
 
         close(pipefd[1]);
-		while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
-			buffer[bytesRead] = '\0';
-			response.append(buffer);
-        close(pipefd[0]);
-        waitpid(pid, &status, 0);
-        if (WIFEXITED(status)) {
-            val = WEXITSTATUS(status);
+        while (std::difftime(std::time(NULL), start) <= 2) {
+            int result = waitpid(pid, &status, WNOHANG);
+            if (result > 0) {
+                char buffer[1024];
+                timeout = false;
+
+                while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+                    buffer[bytesRead] = '\0';
+                    response.append(buffer);
+                }
+                close(pipefd[0]);
+                if (WIFEXITED(status)) {
+                    val = WEXITSTATUS(status);
+                }
+                break ;
+            }
         }
-		}
+        if (timeout) {
+            kill(pid, SIGTERM);
+            close(pipefd[0]);
+        }
     }
 
-    if (val > 0 || bytesRead == -1) {
+    if (timeout) {
+        response = getHTTPCode(conf, "408");
+    } else if (val > 0 || bytesRead == -1) {
         response = getHTTPCode(conf, "500");
     } else {
         if (request == GET) {
