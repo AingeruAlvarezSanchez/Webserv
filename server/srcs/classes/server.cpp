@@ -67,7 +67,7 @@ void Server::checkIncoming(fd_set &readfds, SocketManager &serverSockets, std::v
 
 void Server::handleClientRequest(int clientSocket, ServerConf &conf)
 {
-    char c;
+ 	char c;
     ssize_t bytesRead;
     int contentLength = 0;
     bool foundEndOfHeaders = false;
@@ -1045,7 +1045,7 @@ bool Server::isValidHost(const ServerConf &conf) {
     std::string key = "Host";
     MapIterator it = this->keyValuePairs.find(key);
 
-    if (it == this->keyValuePairs.end() || *it->second.begin() != "localhost\r") {
+    if (it == this->keyValuePairs.end() && *it->second.begin() != "localhost\r") { 
         return false;
     } else {
         if (*it->second.begin() == "localhost\r") {
