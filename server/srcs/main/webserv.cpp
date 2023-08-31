@@ -21,6 +21,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+	std::vector<unsigned short> duplicates;
+    for (std::vector<ServerConf>::iterator it = serverConf.begin(); it != serverConf.end(); it++) {
+		if (std::find(duplicates.begin(), duplicates.end(), it->server().ipv4Addr.sin_port) != duplicates.end()) {
+			std::cerr << "Error: One or more ports duplicated.\n";
+			return 1;
+		}
+		duplicates.push_back(it->server().ipv4Addr.sin_port);
+    }
+
     for (std::vector<ServerConf>::iterator it = serverConf.begin(); it != serverConf.end(); it++) {
         std::cout << *it;
     }

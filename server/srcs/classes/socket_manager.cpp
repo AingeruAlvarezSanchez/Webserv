@@ -120,12 +120,14 @@ std::vector<int> SocketManager::listenOnSock(SockIter first, SockIter last) {
             struct sockaddr_in addr = first->second.server().ipv4Addr;
             bind(first->first, (struct sockaddr *)&addr, sizeof(addr));
             if (listen(first->first, 0) != -1) {
+				std::cerr << "Socket manager: listen: " << strerror(errno) << "\n";
                 validFds.push_back(first->first);
             }
         } else {
             struct sockaddr_in6 addr = first->second.server().ipv6Addr;
             bind(first->first, (struct sockaddr *) &addr, sizeof(addr));
             if (listen(first->first, 0) != -1) {
+				std::cerr << "Socket manager: listen: " << strerror(errno) << "\n";
                 validFds.push_back(first->first);
             }
         }
